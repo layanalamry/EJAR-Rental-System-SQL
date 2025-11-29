@@ -206,7 +206,8 @@ public class CustomerPanel extends JPanel {
     private void loadData(){
         model.setRowCount(0);
 
-        final String sql = "SELECT Cus_name, Cus_mobile, Email FROM CUSTOMER ORDER BY Cus_name";
+final String sql = 
+    "SELECT Cus_name, Cus_mobile, Email, pass_word FROM CUSTOMER1 ORDER BY Cus_name";
 
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
@@ -217,6 +218,7 @@ public class CustomerPanel extends JPanel {
                 row.add(rs.getString("Cus_name"));
                 row.add(rs.getString("Cus_mobile"));
                 row.add(rs.getString("Email"));
+                row.add(rs.getString("pass_word"));         
                 model.addRow(row);
             }
 

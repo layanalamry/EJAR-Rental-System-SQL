@@ -1,4 +1,3 @@
-
 import javax.swing.*;
 import java.awt.*;
 import java.sql.Connection;
@@ -13,6 +12,7 @@ public class EjarLogin extends JFrame {
     private JRadioButton employeeRadio;
     private JLabel inputLabel;
     private JTextField inputField;
+    private JPasswordField passwordField;   // حقل الباسوورد الجديد
 
     public EjarLogin() {
         setTitle("EJAR - Login");
@@ -70,6 +70,12 @@ public class EjarLogin extends JFrame {
         inputField = new JTextField();
         inputField.setFont(new Font("Serif", Font.PLAIN, 15));
 
+        JLabel passLabel = new JLabel("Password:");
+        passLabel.setFont(new Font("Serif", Font.BOLD, 15));
+
+        passwordField = new JPasswordField();
+        passwordField.setFont(new Font("Serif", Font.PLAIN, 15));
+
         JButton loginButton = new JButton("Login");
         styleMainButton(loginButton);
         loginButton.addActionListener(e -> handleLogin());
@@ -101,6 +107,14 @@ public class EjarLogin extends JFrame {
         gbc.gridx = 1;
         card.add(inputField, gbc);
 
+        // صف الباسوورد
+        gbc.gridx = 0; gbc.gridy++;
+        card.add(passLabel, gbc);
+
+        gbc.gridx = 1;
+        card.add(passwordField, gbc);
+
+        // الأزرار
         gbc.gridx = 0; gbc.gridy++;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
@@ -125,14 +139,17 @@ public class EjarLogin extends JFrame {
         }
     }
 
-    // ==================== LOGIN (نفسه تقريباً ما تغيّر) ====================
+    // ==================== LOGIN ====================
     private void handleLogin() {
         String text = inputField.getText().trim();
+        String password = new String(passwordField.getPassword()).trim();
 
-        if (text.isEmpty()) {
+        if (text.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Please enter your " + (customerRadio.isSelected() ? "name." : "employee ID."),
+                    "Please enter your " +
+                            (customerRadio.isSelected() ? "name" : "employee ID") +
+                            " and password.",
                     "Missing information",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -145,7 +162,7 @@ public class EjarLogin extends JFrame {
 
             try (Connection conn = DBConnection.getConnection();
                  PreparedStatement ps = conn.prepareStatement(
-                         "SELECT Cus_name FROM CUSTOMER WHERE Cus_name = ?")) {
+                         "SELECT Cus_name, Cus_mobile FROM CUSTOMER WHERE Cus_name = ?")) {
 
                 ps.setString(1, customerName);
                 ResultSet rs = ps.executeQuery();
@@ -154,6 +171,24 @@ public class EjarLogin extends JFrame {
                     JOptionPane.showMessageDialog(
                             this,
                             "Customer not found in database.",
+                            "Login error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    return;
+                }
+
+                String mobile = rs.getString("Cus_mobile");
+                if (mobile == null) mobile = "";
+
+                // آخر 4 أرقام من الجوال هي الباسوورد
+                String last4 = mobile.length() >= 4
+                        ? mobile.substring(mobile.length() - 4)
+                        : mobile;
+
+                if (!password.equals(last4)) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Incorrect password.",
                             "Login error",
                             JOptionPane.ERROR_MESSAGE
                     );
@@ -196,8 +231,8 @@ public class EjarLogin extends JFrame {
                 return;
             }
 
+            // نشيك أنه موجود في DB
             String empName = null;
-
             try (Connection conn = DBConnection.getConnection();
                  PreparedStatement ps = conn.prepareStatement(
                          "SELECT Emp_name FROM EMPLOYEE WHERE Emp_id = ?")) {
@@ -228,6 +263,17 @@ public class EjarLogin extends JFrame {
                 return;
             }
 
+            // باسوورد موحد للموظفين
+            if (!password.equals("1234")) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Incorrect password.",
+                        "Login error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
             JOptionPane.showMessageDialog(
                     this,
                     "Welcome, " + empName + " (ID " + empId + ")",
@@ -243,7 +289,7 @@ public class EjarLogin extends JFrame {
         dispose();
     }
 
-    // ==================== REGISTER (الجديد) ====================
+    // ==================== REGISTER ====================
     private void handleRegister() {
         if (customerRadio.isSelected()) {
             registerCustomer();
@@ -380,21 +426,6 @@ public class EjarLogin extends JFrame {
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    // هذا الميثود ما عدنا نحتاجه فعلياً، لكن لو حبيتي تخليه براحتك
-    private String getEmployeeName(String text) {
-        try (Connection conn = DBConnection.getConnection()) {
-            String sql = "SELECT Emp_name FROM EMPLOYEE WHERE Emp_id = ?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setInt(1, Integer.parseInt(text));
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) return rs.getString("Emp_name");
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return null;
     }
 
     public static void main(String[] args) {
