@@ -288,5 +288,44 @@ LEFT JOIN MAKES m
     ON e.Equip_id = m.Equ_id;
 
 
---
+CREATE VIEW rental1 AS
+SELECT 
+    r.Rental_id AS Rental_id,
+    r.Start_date,
+    r.End_date,
+    r.City,
+    r.Zip_code,
+    p.Total_price AS Total_price,
+    m.Equ_id AS Equipment_id,
+    m.C_name AS Customer_name,
+    r.Employee_id
+FROM rental r
+JOIN makes m ON r.Rental_id = m.Rent_id
+JOIN payment p ON p.P_rental = m.Rent_id;
+
+CREATE VIEW customer1 AS
+SELECT 
+    Cus_name,
+    Cus_mobile,
+    Email,
+    RIGHT(Cus_mobile, 4) AS pass_word
+FROM customer;
+
+
+--fix this ❌❌--
+CREATE TRIGGER trg_check_rental_date
+BEFORE INSERT ON RENTAL
+FOR EACH ROW
+BEGIN
+    IF NEW.Start_date < CURRENT_DATE() THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Start date cannot be in the past'
+    END IF;
+
+    IF NEW.End_date < NEW.Start_date THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'End date cannot be before start date'
+    END IF;
+END;
+
 
