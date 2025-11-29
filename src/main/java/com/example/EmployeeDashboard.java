@@ -278,7 +278,7 @@ public class EmployeeDashboard extends JFrame {
 
     // كل المعدات من EQUIPMENT
     private void loadManagedEquipment() {
-        String sql = "SELECT Equip_id, Type, Model, Price, Status FROM EQUIPMENT";
+        String sql = "SELECT id, type, model, price, stat FROM EQUIPMENT1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -288,11 +288,11 @@ public class EmployeeDashboard extends JFrame {
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                        rs.getInt("Equip_id"),
-                        rs.getString("Type"),
-                        rs.getString("Model"),
-                        rs.getDouble("Price"),
-                        rs.getString("Status")
+                        rs.getInt("id"),
+                        rs.getString("type"),
+                        rs.getString("model"),
+                        rs.getDouble("price"),
+                        rs.getString("stat")
                 });
             }
         } catch (SQLException ex) {
@@ -302,43 +302,34 @@ public class EmployeeDashboard extends JFrame {
     }
 
     // كل الإيجارات مع اسم العميل والإيميل، بدون الموبايل
-    private void loadAllRentals() {
-        String sql =
-                "SELECT R.Rental_id, " +
-                "       C.Cus_name AS Company, " +
-                "       C.Email    AS Email, " +
-                "       R.Start_date, " +
-                "       R.End_date, " +
-                "       M.Equip_id   AS Equip_id, " +
-                "       R.Tot_price, " +
-                "       R.Employee_id " +
-                "FROM RENTAL R " +
-                "JOIN MAKES M ON R.Rental_id = M.Rent_id " +
-                "JOIN CUSTOMER C ON M.C_name = C.Cus_name";
+   private void loadAllRentals() {
+    String sql = "SELECT Rental_id, Customer_name, Start_date, End_date, " +
+                 "Equipment_id, Total_price, Employee_id " +
+                 "FROM rental1 ORDER BY Rental_id";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+    try (PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
 
-            DefaultTableModel model = (DefaultTableModel) rentalsTable.getModel();
-            model.setRowCount(0);
+        DefaultTableModel model = (DefaultTableModel) rentalsTable.getModel();
+        model.setRowCount(0);
 
-            while (rs.next()) {
-                model.addRow(new Object[]{
-                        rs.getInt("Rental_id"),
-                        rs.getString("Company"),
-                        rs.getString("Email"),
-                        rs.getString("Start_date"),
-                        rs.getString("End_date"),
-                        rs.getInt("Equip_id"),
-                        rs.getDouble("Tot_price"),
-                        rs.getObject("Employee_id")
-                });
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error loading rentals");
+        while (rs.next()) {
+            model.addRow(new Object[]{
+                    rs.getInt("Rental_id"),
+                    rs.getString("Customer_name"),
+                    rs.getString("Start_date"),
+                    rs.getString("End_date"),
+                    rs.getInt("Equipment_id"),
+                    rs.getDouble("Total_price"),
+                    rs.getObject("Employee_id")
+            });
         }
+
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error loading rentals");
     }
+}
 
     // ============ EQUIPMENT OPERATIONS ============
 
