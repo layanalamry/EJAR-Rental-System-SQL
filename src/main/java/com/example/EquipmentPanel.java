@@ -1,4 +1,3 @@
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -203,36 +202,54 @@ public class EquipmentPanel extends JPanel {
         }
     }
 
-    private void deleteEquipment(){
+ 
+private void deleteEquipment() {
 
-        int row = table.getSelectedRow();
-        if (row == -1){
-            msg("Select a row to delete.");
-            return;
-        }
-
-        int id = Integer.parseInt(model.getValueAt(row,0).toString());
-
-        if (JOptionPane.showConfirmDialog(this,
-                "Delete equipment " + id + " ?",
-                "Confirm delete", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
-            return;
-
-        final String sql = "DELETE FROM EQUIPMENT WHERE Equip_id=?";
-
-        try (Connection c = DBConnection.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-
-            ps.setInt(1, id);
-            ps.executeUpdate();
-            msg("Equipment deleted.");
-            loadData();
-            clearFields();
-
-        } catch (SQLException ex) {
-            error(ex);
-        }
+    int row = table.getSelectedRow();
+    if (row == -1){
+        msg("Select a row to delete.");
+        return;
     }
+
+    int id = Integer.parseInt(model.getValueAt(row, 0).toString());
+
+    if (JOptionPane.showConfirmDialog(this,
+            "Delete equipment " + id + " ?",
+            "Confirm delete", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
+        return;
+
+    try (Connection c = DBConnection.getConnection()) {
+
+        // 1) Check if this equipment is used in any rental (MAKES table)
+        String checkSql = "SELECT COUNT(*) FROM MAKES WHERE Equip_id = ?";
+        try (PreparedStatement checkPs = c.prepareStatement(checkSql)) {
+            checkPs.setInt(1, id);
+            try (ResultSet rs = checkPs.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    msg("Cannot delete: this equipment is used in one or more rentals (MAKES).");
+                    return;
+                }
+            }
+        }
+
+        // 2) Safe to delete
+        String deleteSql = "DELETE FROM EQUIPMENT WHERE Equip_id = ?";
+        try (PreparedStatement delPs = c.prepareStatement(deleteSql)) {
+            delPs.setInt(1, id);
+            int affected = delPs.executeUpdate();
+            if (affected > 0) {
+                msg("Equipment deleted.");
+                loadData();
+                clearFields();
+            } else {
+                msg("No equipment found with id " + id + ".");
+            }
+        }
+
+    } catch (SQLException ex) {
+        error(ex);
+    }
+}
 
     private void loadData(){
 

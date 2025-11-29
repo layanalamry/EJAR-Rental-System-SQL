@@ -1,4 +1,4 @@
-import javax.swing.*;
+
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -6,13 +6,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 
+import javax.swing.*;
+
 public class EjarLogin extends JFrame {
 
     private JRadioButton customerRadio;
     private JRadioButton employeeRadio;
     private JLabel inputLabel;
     private JTextField inputField;
-    private JPasswordField passwordField;   // حقل الباسوورد الجديد
+    private JPasswordField passwordField;   // حقل الباسوورد
+    private JLabel passwordHint;            // الهينت تحت الباسوورد
 
     public EjarLogin() {
         setTitle("EJAR - Login");
@@ -76,6 +79,11 @@ public class EjarLogin extends JFrame {
         passwordField = new JPasswordField();
         passwordField.setFont(new Font("Serif", Font.PLAIN, 15));
 
+        // ===== الهينت تحت الباسوورد =====
+        passwordHint = new JLabel("Hint: Password = last 4 digits of your mobile number.");
+        passwordHint.setFont(new Font("Serif", Font.PLAIN, 12));
+        passwordHint.setForeground(Color.DARK_GRAY);
+
         JButton loginButton = new JButton("Login");
         styleMainButton(loginButton);
         loginButton.addActionListener(e -> handleLogin());
@@ -114,6 +122,11 @@ public class EjarLogin extends JFrame {
         gbc.gridx = 1;
         card.add(passwordField, gbc);
 
+        // صف الهينت
+        gbc.gridx = 0; gbc.gridy++;
+        gbc.gridwidth = 2;
+        card.add(passwordHint, gbc);
+
         // الأزرار
         gbc.gridx = 0; gbc.gridy++;
         gbc.gridwidth = 2;
@@ -134,8 +147,14 @@ public class EjarLogin extends JFrame {
     private void updateInputLabel() {
         if (customerRadio.isSelected()) {
             inputLabel.setText("Customer name:");
+            if (passwordHint != null) {
+                passwordHint.setText("Hint: Password = last 4 digits of your mobile number.");
+            }
         } else {
             inputLabel.setText("Employee ID:");
+            if (passwordHint != null) {
+                passwordHint.setText("Hint: Use your default company password.");
+            }
         }
     }
 

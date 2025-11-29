@@ -1,10 +1,12 @@
-
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+
 import java.awt.*;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+
+import javax.swing.JFrame;
+import javax.swing.table.DefaultTableModel;
 
 public class CustomerDashboard extends JFrame {
 
@@ -24,11 +26,14 @@ public class CustomerDashboard extends JFrame {
     private JTextField cityField;
     private JTextField zipField;
 
-    // اسم العميل (مؤقتاً ثابت – تقدرين تعدلينه أو تمريرِه من شاشة اللوق إن)
+    // اسم العميل (يجي من شاشة اللوق إن)
     private String customerName;
 
     // اتصال قاعدة البيانات
     private Connection conn;
+
+    // لعرض معلومات العميل تحت Welcome
+    private JLabel customerInfoLabel;
 
     public CustomerDashboard(String customerName) {
         this.customerName = customerName;   // نخزن الاسم اللي دخل في اللوق إن
@@ -50,10 +55,20 @@ public class CustomerDashboard extends JFrame {
         try {
             conn = DBConnection.getConnection();
             loadAvailableFromDB();
+            loadCustomerInfoFromDB();   // <-- هنا نعبّي معلومات الكستمر ونحطها في الليبل
         } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "DB connection error");
         }
+
+        // ======= الرسالة اللي تطلع أول ما يدخل الكستمر =======
+        JOptionPane.showMessageDialog(
+                this,
+                "Welcome, " + customerName +
+                        "\nYou must create at least one rental now.",
+                "EJAR Notice",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     // ===================== HEADER =====================
@@ -68,12 +83,26 @@ public class CustomerDashboard extends JFrame {
         title.setFont(new Font("Serif", Font.BOLD, 28));
         title.setForeground(Color.WHITE);
 
+        // البانل اللي على اليمين فيه Welcome + معلومات العميل بخط صغير
+        JPanel rightPanel = new JPanel();
+        rightPanel.setOpaque(false);
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+
         JLabel welcome = new JLabel("Welcome, " + customerName, SwingConstants.RIGHT);
         welcome.setFont(new Font("Serif", Font.BOLD, 16));
         welcome.setForeground(Color.WHITE);
+        welcome.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        customerInfoLabel = new JLabel("", SwingConstants.RIGHT);
+        customerInfoLabel.setFont(new Font("Serif", Font.PLAIN, 12));
+        customerInfoLabel.setForeground(Color.WHITE);
+        customerInfoLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        rightPanel.add(welcome);
+        rightPanel.add(customerInfoLabel);
 
         header.add(title, BorderLayout.WEST);
-        header.add(welcome, BorderLayout.EAST);
+        header.add(rightPanel, BorderLayout.EAST);
 
         return header;
     }
@@ -196,14 +225,11 @@ public class CustomerDashboard extends JFrame {
         JButton updateInfoBtn = makeBtn("Update My Info");
         updateInfoBtn.addActionListener(e -> openUpdateInfoWindow());
 
-        JButton backBtn = makeBtn("Back");
-        backBtn.addActionListener(e -> dispose());
-
+        // ما في زر Back زي ما اتفقنا
         bar.add(rentalsBtn);
         bar.add(cancelBtn);
         bar.add(paymentsBtn);
         bar.add(updateInfoBtn);
-        bar.add(backBtn);
 
         return bar;
     }
@@ -227,10 +253,6 @@ public class CustomerDashboard extends JFrame {
         String city    = cityField.getText().trim();
         String zip     = zipField.getText().trim();
 
-        // لو المستخدم ترك القيمة الافتراضية "YYYY-MM-DD" نعتبرها فاضية
-        if ("YYYY-MM-DD".equals(start)) start = "";
-        if ("YYYY-MM-DD".equals(end))   end   = "";
-
         if (equipId.isEmpty() || start.isEmpty() || end.isEmpty()
                 || city.isEmpty() || zip.isEmpty()) {
 
@@ -242,7 +264,6 @@ public class CustomerDashboard extends JFrame {
         }
 
         try {
-            // نحول التواريخ ونتأكد أن النهاية بعد البداية
             LocalDate s = LocalDate.parse(start);
             LocalDate e = LocalDate.parse(end);
             long days = ChronoUnit.DAYS.between(s, e);
@@ -254,7 +275,6 @@ public class CustomerDashboard extends JFrame {
                 return;
             }
 
-            // 1) نجيب السعر اليومي من جدول EQUIPMENT
             double pricePerDay = 0;
             String priceSql = "SELECT Price FROM EQUIPMENT WHERE Equip_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(priceSql)) {
@@ -272,13 +292,9 @@ public class CustomerDashboard extends JFrame {
 
             conn.setAutoCommit(false);
 
-            // 2) نجيب ID جديد للرنتال و للإنفويز
             int rentalId  = getNextId("RENTAL",  "Rental_id");
             int invoiceId = getNextId("PAYMENT", "Invoice");
 
-            // 3) INSERT INTO RENTAL
-            // حسب تعريف الجدول في SQL:
-            // (Rental_id, Start_date, End_date, City, Zip_code, Tot_price, Equip_id, C_name, Employee_id)
             String rentalSql =
                     "INSERT INTO RENTAL " +
                     "(Rental_id, Start_date, End_date, City, Zip_code, Tot_price, Equip_id, C_name, Employee_id) " +
@@ -292,12 +308,10 @@ public class CustomerDashboard extends JFrame {
                 ps.setDouble(6, totalPrice);
                 ps.setInt(7, Integer.parseInt(equipId));
                 ps.setString(8, customerName);
-                // مبدئياً نخلي Employee_id ثابت 1 (أو عدليه لاحقاً من شاشة الموظف)
-                ps.setInt(9, 1);
+                ps.setInt(9, 1); // employee id افتراضي
                 ps.executeUpdate();
             }
 
-            // 4) INSERT INTO PAYMENT
             String paySql =
                     "INSERT INTO PAYMENT (Invoice, Pay_date, Total_price, P_rental) " +
                     "VALUES (?, CURRENT_DATE(), ?, ?)";
@@ -308,7 +322,6 @@ public class CustomerDashboard extends JFrame {
                 ps.executeUpdate();
             }
 
-            // 5) INSERT INTO MAKES  (اسم العمود Equ_id في جدول MAKES)
             String makesSql = "INSERT INTO MAKES (C_name, Equip_id, Rent_id) VALUES (?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(makesSql)) {
                 ps.setString(1, customerName);
@@ -317,7 +330,6 @@ public class CustomerDashboard extends JFrame {
                 ps.executeUpdate();
             }
 
-            // 6) نغيّر حالة المعدة إلى Rented
             String updateEquip = "UPDATE EQUIPMENT SET Status = 'Rented' WHERE Equip_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(updateEquip)) {
                 ps.setInt(1, Integer.parseInt(equipId));
@@ -330,7 +342,7 @@ public class CustomerDashboard extends JFrame {
             JOptionPane.showMessageDialog(this,
                     "Booking created successfully!\nTotal price: " + totalPrice + " SAR");
 
-            loadAvailableFromDB(); // نحدّث قائمة المتاح
+            loadAvailableFromDB();
 
         } catch (Exception ex) {
             try { conn.rollback(); } catch (Exception ignore) {}
@@ -339,7 +351,6 @@ public class CustomerDashboard extends JFrame {
         }
     }
 
-    // helper بسيط يجيب أكبر ID + 1
     private int getNextId(String tableName, String idColumn) throws SQLException {
         String sql = "SELECT COALESCE(MAX(" + idColumn + "), 0) + 1 AS next_id FROM " + tableName;
         try (PreparedStatement ps = conn.prepareStatement(sql);
@@ -438,7 +449,6 @@ public class CustomerDashboard extends JFrame {
         try {
             conn.setAutoCommit(false);
 
-            // نتأكد أن الرنتال يخص هذا العميل ونجيب رقم المعدة Equ_id من MAKES
             String checkSql = "SELECT Equip_id FROM MAKES WHERE Rent_id = ? AND C_name = ?";
             int equipId = -1;
             try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
@@ -456,28 +466,24 @@ public class CustomerDashboard extends JFrame {
                 }
             }
 
-            // DELETE from PAYMENT
             try (PreparedStatement ps = conn.prepareStatement(
                     "DELETE FROM PAYMENT WHERE P_rental = ?")) {
                 ps.setInt(1, rentalId);
                 ps.executeUpdate();
             }
 
-            // DELETE from MAKES
             try (PreparedStatement ps = conn.prepareStatement(
                     "DELETE FROM MAKES WHERE Rent_id = ?")) {
                 ps.setInt(1, rentalId);
                 ps.executeUpdate();
             }
 
-            // DELETE from RENTAL
             try (PreparedStatement ps = conn.prepareStatement(
                     "DELETE FROM RENTAL WHERE Rental_id = ?")) {
                 ps.setInt(1, rentalId);
                 ps.executeUpdate();
             }
 
-            // رجّع حالة المعدة
             try (PreparedStatement ps = conn.prepareStatement(
                     "UPDATE EQUIPMENT SET Status = 'Available' WHERE Equip_id = ?")) {
                 ps.setInt(1, equipId);
@@ -533,6 +539,8 @@ public class CustomerDashboard extends JFrame {
                     int rows = ps.executeUpdate();
                     if (rows > 0) {
                         JOptionPane.showMessageDialog(this, "Info updated successfully!");
+                        // نحدّث الليبل فوق بعد ما يعدّل بياناته
+                        loadCustomerInfoFromDB();
                     } else {
                         JOptionPane.showMessageDialog(this, "Customer not found.");
                     }
@@ -546,31 +554,63 @@ public class CustomerDashboard extends JFrame {
 
     // ===================== LOAD AVAILABLE EQUIP =====================
 
-    private void loadAvailableFromDB() {
-        String sql = "SELECT Equip_id, Type, Model, Price, Status " +
-                "FROM EQUIPMENT WHERE Status = 'Available'";
+    // ===================== LOAD AVAILABLE EQUIP =====================
+private void loadAvailableFromDB() {
+    // نستخدم الــ view اللي اسمه equipment1
+    String sql = "SELECT id, type, model, price, stat " +
+                 "FROM equipment1 " +
+                 "WHERE stat = 'available'";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+    try (PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
 
-            DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
-            m.setRowCount(0);
+        DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
+        m.setRowCount(0);
 
-            while (rs.next()) {
-                m.addRow(new Object[]{
-                        rs.getInt("Equip_id"),
-                        rs.getString("Type"),
-                        rs.getString("Model"),
-                        rs.getDouble("Price"),
-                        rs.getString("Status")
-                });
+        while (rs.next()) {
+            m.addRow(new Object[]{
+                    rs.getInt("id"),        // Equip_id
+                    rs.getString("type"),   // Type
+                    rs.getString("model"),  // Model
+                    rs.getDouble("price"),  // Price
+                    rs.getString("stat")    // Status (available / rented)
+            });
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error loading available equipment");
+    }
+}
+
+    // ===================== LOAD CUSTOMER INFO =====================
+
+    private void loadCustomerInfoFromDB() {
+        if (conn == null) return;
+
+        String sql = "SELECT Cus_mobile, Email FROM CUSTOMER WHERE Cus_name = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, customerName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String mobile = rs.getString("Cus_mobile");
+                    String email  = rs.getString("Email");
+
+                    if (mobile == null) mobile = "";
+                    if (email  == null) email  = "";
+
+                    // مثال: Mobile: 05xxxxxxx   |   Email: test@mail.com
+                    String text = "Mobile: " + mobile;
+                    if (!email.isEmpty()) {
+                        text += "    |    Email: " + email;
+                    }
+                    customerInfoLabel.setText(text);
+                } else {
+                    customerInfoLabel.setText("Customer info not found.");
+                }
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error loading available equipment");
+            customerInfoLabel.setText("Error loading customer info.");
         }
     }
-
-    // ===================== MAIN =====================
-
 }
