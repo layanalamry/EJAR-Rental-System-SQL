@@ -1,0 +1,292 @@
+CREATE DATABASE IF NOT EXISTS EJAR;
+USE EJAR;
+
+-- =========================================
+-- DROP TABLES (ORDER MATTERS)
+-- =========================================
+DROP TABLE IF EXISTS MAKES;
+DROP TABLE IF EXISTS PAYMENT;
+DROP TABLE IF EXISTS RENTAL;
+DROP TABLE IF EXISTS EMPLOYEE;
+DROP TABLE IF EXISTS EQUIPMENT;
+DROP TABLE IF EXISTS CUSTOMER;
+
+-- =========================================
+-- TABLE DEFINITIONS (MATCHING THE DIAGRAM)
+-- =========================================
+
+-- CUSTOMER
+CREATE TABLE CUSTOMER (
+    Cus_name   VARCHAR(80) PRIMARY KEY,
+    Cus_mobile VARCHAR(20) NOT NULL,
+    Email      VARCHAR(80) NOT NULL UNIQUE
+);
+
+-- EQUIPMENT
+CREATE TABLE EQUIPMENT (
+    Equip_id INT PRIMARY KEY,
+    Type     VARCHAR(50) NOT NULL,
+    Model    VARCHAR(80) NOT NULL,
+    Price    DECIMAL(10,2) NOT NULL
+);
+
+-- EMPLOYEE
+-- 
+CREATE TABLE EMPLOYEE (
+    Emp_id   INT PRIMARY KEY,
+    Emp_name VARCHAR(60) NOT NULL,
+    Eq_id    INT,
+    FOREIGN KEY (Eq_id) REFERENCES EQUIPMENT(Equip_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+-- RENTAL
+
+CREATE TABLE RENTAL (
+    Rental_id   INT PRIMARY KEY,
+    Start_date  DATE NOT NULL,
+    End_date    DATE NOT NULL,
+    City        VARCHAR(50) NOT NULL,
+    Zip_code    VARCHAR(10) NOT NULL,
+    Employee_id INT,
+    FOREIGN KEY (Employee_id) REFERENCES EMPLOYEE(Emp_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+-- PAYMENT
+CREATE TABLE PAYMENT (
+    Invoice      INT PRIMARY KEY,
+    Pay_date     DATE NOT NULL,
+    Total_price  DECIMAL(10,2) NOT NULL,
+    P_rental     INT NOT NULL,
+    FOREIGN KEY (P_rental) REFERENCES RENTAL(Rental_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- MAKES (Customer rents specific equipment through a rental)
+CREATE TABLE MAKES (
+    C_name  VARCHAR(80) NOT NULL,
+    Equ_id  INT NOT NULL,
+    Rent_id INT NOT NULL,
+    PRIMARY KEY (C_name, Equ_id, Rent_id),
+
+    FOREIGN KEY (C_name) REFERENCES CUSTOMER(Cus_name)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    FOREIGN KEY (Equ_id) REFERENCES EQUIPMENT(Equip_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    FOREIGN KEY (Rent_id) REFERENCES RENTAL(Rental_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+
+
+
+
+
+
+-- =========================================
+-- INSERT DATA
+-- =========================================
+
+-- CUSTOMERS
+INSERT INTO CUSTOMER VALUES ('Perfect Target',     '0556354410', 'perfecttarget@gmail.com');
+INSERT INTO CUSTOMER VALUES ('AlJazeera',          '0555783000', 'aljazeera@gmail.com');
+INSERT INTO CUSTOMER VALUES ('BuildRight',         '0551122334', 'buildright@gmail.com');
+INSERT INTO CUSTOMER VALUES ('StrongBase',         '0569988776', 'strongbase@gmail.com');
+INSERT INTO CUSTOMER VALUES ('FutureConstruct',    '0507779992', 'futureconst@gmail.com');
+INSERT INTO CUSTOMER VALUES ('EliteBuilders',      '0536678899', 'elitebuilders@gmail.com');
+INSERT INTO CUSTOMER VALUES ('MegaProjects',       '0563456723', 'megaprojects@gmail.com');
+INSERT INTO CUSTOMER VALUES ('SkylineCorp',        '0548893211', 'skylinecorp@gmail.com');
+INSERT INTO CUSTOMER VALUES ('SolidGround',        '0502233445', 'solidground@gmail.com');
+INSERT INTO CUSTOMER VALUES ('PrimeContractors',   '0591122004', 'primecont@gmail.com');
+
+-- EQUIPMENT
+INSERT INTO EQUIPMENT VALUES (110, 'Construction Machine', 'CAT 320D Excavator 2016', 750.00);
+INSERT INTO EQUIPMENT VALUES (111, 'Generator',         'Diesel 50KW',         500.00);
+INSERT INTO EQUIPMENT VALUES (112, 'Crane',             'Kobelco 70T',        1800.00);
+INSERT INTO EQUIPMENT VALUES (113, 'Forklift',          'Toyota 3 Ton',        400.00);
+INSERT INTO EQUIPMENT VALUES (114, 'Bulldozer',         'Komatsu D85',       1500.00);
+INSERT INTO EQUIPMENT VALUES (115, 'Concrete Mixer',    'Cifa Magnum',         650.00);
+INSERT INTO EQUIPMENT VALUES (116, 'Tower Light',       'Doosan L6',           350.00);
+INSERT INTO EQUIPMENT VALUES (117, 'Air Compressor',    'Atlas Copco XAS 97',  300.00);
+INSERT INTO EQUIPMENT VALUES (118, 'Excavator',         'Hitachi ZX200',       900.00);
+INSERT INTO EQUIPMENT VALUES (119, 'Loader',            'CAT 950H',          1200.00);
+INSERT INTO EQUIPMENT VALUES (120, 'Roller',            'Bomag BW213',       1000.00);
+INSERT INTO EQUIPMENT VALUES (121, 'Skid Steer',        'Bobcat S450',        450.00);
+
+-- EMPLOYEES (Eq_id assigned when relevant)
+INSERT INTO EMPLOYEE VALUES (1, 'Ahmed Al-Saif', NULL);
+INSERT INTO EMPLOYEE VALUES (2, 'Sara Al-Qahtani', NULL);
+INSERT INTO EMPLOYEE VALUES (3, 'Noura Al-Harbi', NULL);
+INSERT INTO EMPLOYEE VALUES (4, 'Khalid Al-Otaibi', NULL);
+INSERT INTO EMPLOYEE VALUES (5, 'Reem Al-Mutairi', NULL);
+INSERT INTO EMPLOYEE VALUES (6, 'Omar Al-Shammari', NULL);
+
+-- RENTALS 
+INSERT INTO RENTAL VALUES (2001,'2024-11-20','2024-11-25','Riyadh','11564',2);
+INSERT INTO RENTAL VALUES (2002,'2024-11-10','2024-11-13','Jeddah','22233',1);
+INSERT INTO RENTAL VALUES (2003,'2024-12-01','2024-12-03','Riyadh','11422',3);
+INSERT INTO RENTAL VALUES (2004,'2024-12-05','2024-12-12','Dammam','33777',1);
+INSERT INTO RENTAL VALUES (2005,'2024-12-11','2024-12-15','Riyadh','11677',4);
+INSERT INTO RENTAL VALUES (2006,'2024-12-12','2024-12-14','Tabuk','44112',3);
+INSERT INTO RENTAL VALUES (2007,'2024-12-15','2024-12-18','Jeddah','22661',2);
+INSERT INTO RENTAL VALUES (2008,'2024-12-02','2024-12-06','Riyadh','11455',5);
+INSERT INTO RENTAL VALUES (2009,'2024-12-03','2024-12-10','Abha','55771',6);
+INSERT INTO RENTAL VALUES (2010,'2024-12-07','2024-12-11','Riyadh','11688',3);
+INSERT INTO RENTAL VALUES (2011,'2024-12-09','2024-12-12','Jeddah','22700',4);
+INSERT INTO RENTAL VALUES (2012,'2024-12-15','2024-12-17','Riyadh','11588',2);
+
+-- PAYMENTS
+INSERT INTO PAYMENT VALUES (5001,'2024-11-26',3750.00,2001);
+INSERT INTO PAYMENT VALUES (5002,'2024-11-13',1500.00,2002);
+INSERT INTO PAYMENT VALUES (5003,'2024-12-03',3600.00,2003);
+INSERT INTO PAYMENT VALUES (5004,'2024-12-12',2800.00,2004);
+INSERT INTO PAYMENT VALUES (5005,'2024-12-15',6000.00,2005);
+INSERT INTO PAYMENT VALUES (5006,'2024-12-14',1300.00,2006);
+INSERT INTO PAYMENT VALUES (5007,'2024-12-18',1050.00,2007);
+INSERT INTO PAYMENT VALUES (5008,'2024-12-06',1200.00,2008);
+INSERT INTO PAYMENT VALUES (5009,'2024-12-10',6300.00,2009);
+INSERT INTO PAYMENT VALUES (5010,'2024-12-11',4800.00,2010);
+INSERT INTO PAYMENT VALUES (5011,'2024-12-12',3000.00,2011);
+INSERT INTO PAYMENT VALUES (5012,'2024-12-17',900.00,2012);
+
+-- MAKES (links customer + equipment + rental)
+INSERT INTO MAKES VALUES ('Perfect Target',110,2001);
+INSERT INTO MAKES VALUES ('BuildRight',111,2002);
+INSERT INTO MAKES VALUES ('EliteBuilders',112,2003);
+INSERT INTO MAKES VALUES ('AlJazeera',113,2004);
+INSERT INTO MAKES VALUES ('StrongBase',114,2005);
+INSERT INTO MAKES VALUES ('MegaProjects',115,2006);
+INSERT INTO MAKES VALUES ('SkylineCorp',116,2007);
+INSERT INTO MAKES VALUES ('PrimeContractors',117,2008);
+INSERT INTO MAKES VALUES ('SolidGround',118,2009);
+INSERT INTO MAKES VALUES ('FutureConstruct',119,2010);
+INSERT INTO MAKES VALUES ('BuildRight',120,2011);
+INSERT INTO MAKES VALUES ('EliteBuilders',121,2012);
+
+-- =========================================
+-- EMPLOYEE OPERATIONS
+-- =========================================
+
+-- INSERT
+INSERT INTO EQUIPMENT VALUES (110, 'Construction Machine', 'CAT 320D Excavator 2016', 750.00);
+INSERT INTO EMPLOYEE VALUES (3, 'Sara Al-Qahtani', NULL);
+
+-- DELETE
+DELETE FROM EQUIPMENT WHERE Equip_id = 111;
+DELETE FROM EMPLOYEE WHERE Emp_id = 3;
+
+-- UPDATE
+UPDATE EQUIPMENT SET Price = 2500.00 WHERE Equip_id = 1;
+UPDATE RENTAL SET Employee_id = 2 WHERE Rental_id = 3001;
+
+-- SELECT (one table)
+SELECT Rental_id, Start_date, End_date, City, Zip_code
+FROM RENTAL
+WHERE Employee_id = 2;
+
+SELECT Equip_id, Type, Model, Price
+FROM EQUIPMENT
+WHERE Price > 3000;
+
+-- SELECT (two tables)
+SELECT R.Rental_id, R.Start_date, R.End_date, E.Emp_name
+FROM RENTAL R
+JOIN EMPLOYEE E ON R.Employee_id = E.Emp_id;
+
+-- SELECT (three tables)
+SELECT E.Type, SUM(P.Total_price) AS Total_sales
+FROM EQUIPMENT E
+JOIN MAKES M   ON E.Equip_id = M.Equ_id
+JOIN RENTAL R  ON M.Rent_id  = R.Rental_id
+JOIN PAYMENT P ON R.Rental_id = P.P_rental
+GROUP BY E.Type
+ORDER BY Total_sales DESC;
+
+
+
+
+
+-- =========================================
+-- CUSTOMER OPERATIONS
+-- =========================================
+
+-- INSERT
+INSERT INTO CUSTOMER 
+VALUES ('Perfect Target', '0556354410', 'perfecttarget@gmail.com');
+
+INSERT INTO RENTAL 
+VALUES (2001, '2024-11-20', '2024-11-25', 'Riyadh', '11564', 2);
+
+INSERT INTO MAKES 
+VALUES ('Perfect Target', 110, 2001);
+
+-- DELETE
+DELETE FROM MAKES
+WHERE Rent_id = 2001 AND C_name = 'Perfect Target';
+
+DELETE FROM MAKES
+WHERE Rent_id = 3001 AND C_name = 'AlJazeera';
+
+-- UPDATE
+UPDATE CUSTOMER
+SET Email = 'aljazeera2025@gmail.com'
+WHERE Cus_name = 'AlJazeera';
+
+UPDATE CUSTOMER
+SET Cus_mobile = '0555783221'
+WHERE Cus_name = 'AlJazeera';
+
+-- SELECT (one table)
+SELECT Cus_name, Cus_mobile, Email
+FROM CUSTOMER
+WHERE Cus_name = 'Perfect Target';
+
+SELECT Equip_id, Type, Model, Price
+FROM EQUIPMENT;
+
+-- SELECT (two tables)
+SELECT R.Rental_id, R.Start_date, R.End_date, R.City, R.Zip_code, R.Employee_id
+FROM RENTAL R
+JOIN MAKES M ON M.Rent_id = R.Rental_id
+WHERE M.C_name = 'Perfect Target';
+
+-- SELECT (three tables)
+SELECT P.Invoice, P.Pay_date, P.Total_price
+FROM MAKES M
+JOIN RENTAL R ON M.Rent_id = R.Rental_id
+JOIN PAYMENT P ON R.Rental_id = P.P_rental
+WHERE M.C_name = 'AlJazeera'
+ORDER BY P.Pay_date DESC;
+
+-- =========================================
+-- CREATE VIEW
+-- =========================================
+
+CREATE VIEW equipment1 AS
+SELECT 
+    e.Equip_id AS id,
+    e.Type AS type,
+    e.Model AS model,
+    e.Price AS price,
+
+    CASE 
+        WHEN m.Equ_id IS NULL THEN 'available'
+        ELSE 'rented'
+    END AS stat
+
+FROM EQUIPMENT e
+LEFT JOIN MAKES m 
+    ON e.Equip_id = m.Equ_id;
+
+
+--
+
