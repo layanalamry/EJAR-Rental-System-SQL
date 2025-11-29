@@ -1,4 +1,5 @@
 
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -111,6 +112,7 @@ public class EmployeeDashboard extends JFrame {
         return center;
     }
 
+    // ============ EQUIPMENT CARD ============
     private JPanel buildMyEquipCard() {
         JPanel card = new JPanel(new BorderLayout(5, 5));
         card.setBackground(CARD_GREY);
@@ -124,29 +126,34 @@ public class EmployeeDashboard extends JFrame {
         header.setForeground(Color.WHITE);
         card.add(header, BorderLayout.NORTH);
 
-        // جدول المعدات
+        // نستخدم الـ VIEW equipment1 عشان نجيب الـ Status (stat)
         String[] cols = {"Equip ID", "Type", "Model", "Price", "Status"};
         myEquipTable = new JTable(new DefaultTableModel(cols, 0));
         myEquipTable.setRowHeight(22);
         card.add(new JScrollPane(myEquipTable), BorderLayout.CENTER);
 
-        // أزرار تحت: زر إدارة (Update/Delete) + زر Add New
-        JButton manageBtn = new JButton("Update / Delete");
-        styleMainButton(manageBtn);
-        manageBtn.addActionListener(e -> handleUpdateOrDeleteEquipment());
-
+        // ثلاثة أزرار: Add / Update / Delete
+     // === Buttons ===
         JButton addBtn = new JButton("Add New Equipment");
+        JButton editBtn = new JButton("Update / Delete");
+
         styleMainButton(addBtn);
+        styleMainButton(editBtn);
+
         addBtn.addActionListener(e -> addNewEquipment());
+        editBtn.addActionListener(e -> handleManageEquipment());
 
         JPanel bottom = new JPanel();
         bottom.setOpaque(false);
-        bottom.add(manageBtn);
         bottom.add(addBtn);
+        bottom.add(editBtn);
+
         card.add(bottom, BorderLayout.SOUTH);
 
         return card;
     }
+
+    // ============ RENTALS CARD ============
     private JPanel buildRentalsCard() {
         JPanel card = new JPanel(new BorderLayout(5, 5));
         card.setBackground(CARD_GREY);
@@ -172,7 +179,7 @@ public class EmployeeDashboard extends JFrame {
         JPanel buttonsPanel = new JPanel(new GridLayout(3, 1, 5, 5));
         buttonsPanel.setOpaque(false);
 
-        JButton superviseBtn = new JButton("Supervise a rental");
+        JButton superviseBtn   = new JButton("Supervise a rental");
         JButton mySuperviseBtn = new JButton("Rentals I supervise");
         JButton viewContactBtn = new JButton("View Customer Contact");
 
@@ -193,6 +200,7 @@ public class EmployeeDashboard extends JFrame {
         return card;
     }
 
+    // ============ MY INFO CARD ============
     private JPanel buildMyInfoCard() {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(CARD_GREY);
@@ -211,7 +219,7 @@ public class EmployeeDashboard extends JFrame {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JLabel idLabel = new JLabel("Employee ID: " + employeeId);
+        JLabel idLabel   = new JLabel("Employee ID: " + employeeId);
         JLabel nameLabel = new JLabel("Name: " + employeeName);
         idLabel.setFont(new Font("Serif", Font.PLAIN, 15));
         nameLabel.setFont(new Font("Serif", Font.PLAIN, 15));
@@ -276,9 +284,9 @@ public class EmployeeDashboard extends JFrame {
 
     // ============ DB LOADERS ============
 
-    // كل المعدات من EQUIPMENT
+    // كل المعدات – من الـ VIEW equipment1 (فيه stat)
     private void loadManagedEquipment() {
-        String sql = "SELECT id, type, model, price, stat FROM EQUIPMENT1";
+        String sql = "SELECT id, type, model, price, stat FROM equipment1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -301,35 +309,45 @@ public class EmployeeDashboard extends JFrame {
         }
     }
 
-    // كل الإيجارات مع اسم العميل والإيميل، بدون الموبايل
-   private void loadAllRentals() {
-    String sql = "SELECT Rental_id, Customer_name, Start_date, End_date, " +
-                 "Equipment_id, Total_price, Employee_id " +
-                 "FROM rental1 ORDER BY Rental_id";
+    // كل الإيجارات مع اسم العميل والإيميل والتوتال برايس من PAYMENT
+    private void loadAllRentals() {
+        String sql =
+                "SELECT R.Rental_id, " +
+                "       C.Cus_name AS Customer, " +
+                "       C.Email    AS Email, " +
+                "       R.Start_date, " +
+                "       R.End_date, " +
+                "       M.Equ_id   AS Equip_id, " +
+                "       P.Total_price, " +
+                "       R.Employee_id " +
+                "FROM RENTAL R " +
+                "JOIN MAKES M    ON R.Rental_id = M.Rent_id " +
+                "JOIN CUSTOMER C ON M.C_name    = C.Cus_name " +
+                "LEFT JOIN PAYMENT P ON P.P_rental = R.Rental_id";
 
-    try (PreparedStatement ps = conn.prepareStatement(sql);
-         ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
-        DefaultTableModel model = (DefaultTableModel) rentalsTable.getModel();
-        model.setRowCount(0);
+            DefaultTableModel model = (DefaultTableModel) rentalsTable.getModel();
+            model.setRowCount(0);
 
-        while (rs.next()) {
-            model.addRow(new Object[]{
-                    rs.getInt("Rental_id"),
-                    rs.getString("Customer_name"),
-                    rs.getString("Start_date"),
-                    rs.getString("End_date"),
-                    rs.getInt("Equipment_id"),
-                    rs.getDouble("Total_price"),
-                    rs.getObject("Employee_id")
-            });
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                        rs.getInt("Rental_id"),
+                        rs.getString("Customer"),
+                        rs.getString("Email"),
+                        rs.getString("Start_date"),
+                        rs.getString("End_date"),
+                        rs.getInt("Equip_id"),
+                        rs.getDouble("Total_price"),
+                        rs.getObject("Employee_id")
+                });
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading rentals");
         }
-
-    } catch (SQLException ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Error loading rentals");
     }
-}
 
     // ============ EQUIPMENT OPERATIONS ============
 
@@ -372,11 +390,10 @@ public class EmployeeDashboard extends JFrame {
         }
 
         try {
-            // نجيب ID جديد
             int newId = getNextId("EQUIPMENT", "Equip_id");
 
-            String sql = "INSERT INTO EQUIPMENT (Equip_id, Type, Model, Price, Status) " +
-                         "VALUES (?, ?, ?, ?, 'Available')";
+            String sql = "INSERT INTO EQUIPMENT (Equip_id, Type, Model, Price) " +
+                         "VALUES (?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, newId);
                 ps.setString(2, type);
@@ -394,128 +411,154 @@ public class EmployeeDashboard extends JFrame {
         }
     }
 
-    // Update/Delete مع شرط يكون المانجر على المعدّة
-    private void handleUpdateOrDeleteEquipment() {
-        int row = myEquipTable.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Please select an equipment first.");
+    // تحديث السعر بالـ ID – مسموح فقط لو الموظف Manager للمعدّة
+    private void handleUpdateEquipmentById() {
+        String idStr = JOptionPane.showInputDialog(this,
+                "Enter Equip ID to update price:");
+        if (idStr == null || idStr.trim().isEmpty()) return;
+
+        int equipId;
+        try {
+            equipId = Integer.parseInt(idStr.trim());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid Equip ID.");
             return;
         }
 
-        int equipId = (int) myEquipTable.getValueAt(row, 0);
-
-        // أولاً: نتأكد أن هذا الموظف هو المانجر (يشرف على رنتال لهذه المعدّة)
-        if (!isManagerForEquipment(equipId)) {
+        if (!isEmployeeManagerOfEquip(equipId)) {
             JOptionPane.showMessageDialog(
                     this,
-                    "You are not the manager for this equipment.\n" +
-                    "You can update or delete only equipments you supervise rentals for.",
+                    "You are not supervising any rental for this equipment.",
                     "Not allowed",
                     JOptionPane.WARNING_MESSAGE
             );
             return;
         }
 
-        String currentType   = myEquipTable.getValueAt(row, 1).toString();
-        String currentModel  = myEquipTable.getValueAt(row, 2).toString();
-        String currentStatus = myEquipTable.getValueAt(row, 4).toString();
+        String priceStr = JOptionPane.showInputDialog(this,
+                "Enter new price per day:");
+        if (priceStr == null || priceStr.trim().isEmpty()) return;
 
-        JTextField typeField   = new JTextField(currentType);
-        JTextField modelField  = new JTextField(currentModel);
-        JTextField statusField = new JTextField(currentStatus);
-        JTextField priceField  = new JTextField(); // optional
+        double newPrice;
+        try {
+            newPrice = Double.parseDouble(priceStr.trim());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid price.");
+            return;
+        }
 
-        JPanel panel = new JPanel(new GridLayout(4, 2, 5, 5));
-        panel.add(new JLabel("Type:"));
-        panel.add(typeField);
-        panel.add(new JLabel("Model:"));
-        panel.add(modelField);
-        panel.add(new JLabel("Status:"));
-        panel.add(statusField);
-        panel.add(new JLabel("New Price (optional):"));
-        panel.add(priceField);
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE EQUIPMENT SET Price = ? WHERE Equip_id = ?")) {
+            ps.setDouble(1, newPrice);
+            ps.setInt(2, equipId);
+            int rows = ps.executeUpdate();
 
-        String[] options = {"Update", "Delete", "Cancel"};
-        int choice = JOptionPane.showOptionDialog(
-                this, panel, "Update / Delete Equipment",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
-                null, options, options[0]
-        );
-
-        if (choice == 0) {  // Update
-            String newType   = typeField.getText().trim();
-            String newModel  = modelField.getText().trim();
-            String newStatus = statusField.getText().trim();
-            String newPrice  = priceField.getText().trim();
-
-            if (newType.isEmpty() || newModel.isEmpty() || newStatus.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Type, Model and Status cannot be empty.");
-                return;
-            }
-
-            try {
-                String sql = "UPDATE EQUIPMENT SET Type = ?, Model = ?, Status = ?"
-                           + (newPrice.isEmpty() ? "" : ", Price = ?")
-                           + " WHERE Equip_id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    int i = 1;
-                    ps.setString(i++, newType);
-                    ps.setString(i++, newModel);
-                    ps.setString(i++, newStatus);
-                    if (!newPrice.isEmpty()) {
-                        ps.setDouble(i++, Double.parseDouble(newPrice));
-                    }
-                    ps.setInt(i, equipId);
-                    ps.executeUpdate();
-                }
-                JOptionPane.showMessageDialog(this, "Equipment updated successfully.");
+            if (rows > 0) {
+                JOptionPane.showMessageDialog(this, "Price updated successfully.");
                 loadManagedEquipment();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error updating equipment");
+            } else {
+                JOptionPane.showMessageDialog(this, "Equipment not found.");
             }
 
-        } else if (choice == 1) {  // Delete
-            int confirm = JOptionPane.showConfirmDialog(
-                    this, "Delete equipment #" + equipId + "?",
-                    "Confirm delete", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "DELETE FROM EQUIPMENT WHERE Equip_id = ?")) {
-                    ps.setInt(1, equipId);
-                    ps.executeUpdate();
-                    JOptionPane.showMessageDialog(this, "Equipment deleted.");
-                    loadManagedEquipment();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(this, "Error deleting equipment");
-                }
-            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error updating price.");
         }
     }
 
-    // الموظف Manager للمعدّة لو يشرف على أي رنتال تستخدمها
-    private boolean isManagerForEquipment(int equipId) {
+    // حذف المعدّة – مسموح فقط إذا الموظف مانجر عليها والمعدّة غير مستخدمة في MAKES
+    private void handleDeleteEquipmentById() {
+        String idStr = JOptionPane.showInputDialog(this,
+                "Enter Equip ID to delete:");
+        if (idStr == null || idStr.trim().isEmpty()) return;
+
+        int equipId;
+        try {
+            equipId = Integer.parseInt(idStr.trim());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid Equip ID.");
+            return;
+        }
+
+        if (!isEmployeeManagerOfEquip(equipId)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "You are not supervising any rental for this equipment.",
+                    "Not allowed",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        // نتأكد أنها ليست مستخدمة في MAKES (يعني مو rented)
+        String checkSql =
+                "SELECT COUNT(*) AS cnt " +
+                "FROM MAKES WHERE Equ_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            ps.setInt(1, equipId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getInt("cnt") > 0) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "This equipment is used in rentals and cannot be deleted.",
+                            "Not allowed",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error checking rentals for equipment.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to delete equipment #" + equipId + "?",
+                "Confirm delete",
+                JOptionPane.YES_NO_OPTION
+        );
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM EQUIPMENT WHERE Equip_id = ?")) {
+            ps.setInt(1, equipId);
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                JOptionPane.showMessageDialog(this, "Equipment deleted.");
+                loadManagedEquipment();
+            } else {
+                JOptionPane.showMessageDialog(this, "Equipment not found.");
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error deleting equipment.");
+        }
+    }
+
+    // يتحقق أن الموظف الحالي Manager على أي رنتال فيها هذا الـ Equip_id
+    private boolean isEmployeeManagerOfEquip(int equipId) {
         String sql =
                 "SELECT COUNT(*) AS cnt " +
                 "FROM RENTAL R " +
                 "JOIN MAKES M ON R.Rental_id = M.Rent_id " +
-                "WHERE M.Equip_id = ? AND R.Employee_id = ?";
+                "WHERE R.Employee_id = ? AND M.Equ_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, equipId);
-            ps.setInt(2, employeeId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("cnt") > 0;
-                }
+            ps.setInt(1, employeeId);
+            ps.setInt(2, equipId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("cnt") > 0;
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
         return false;
     }
-
     // ============ RENTAL OPERATIONS ============
 
     private void assignRentalToEmployee() {
@@ -550,8 +593,11 @@ public class EmployeeDashboard extends JFrame {
 
     private void showRentalsISupervise() {
         String sql =
-                "SELECT R.Rental_id, R.Start_date, R.End_date, R.City, R.Zip_code, R.Tot_price " +
-                "FROM RENTAL R WHERE R.Employee_id = ?";
+                "SELECT R.Rental_id, R.Start_date, R.End_date, " +
+                "       R.City, R.Zip_code, P.Total_price " +
+                "FROM RENTAL R " +
+                "JOIN PAYMENT P ON P.P_rental = R.Rental_id " +
+                "WHERE R.Employee_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
@@ -567,7 +613,7 @@ public class EmployeeDashboard extends JFrame {
                         rs.getString("End_date"),
                         rs.getString("City"),
                         rs.getString("Zip_code"),
-                        rs.getDouble("Tot_price")
+                        rs.getDouble("Total_price")
                 });
             }
 
@@ -592,9 +638,9 @@ public class EmployeeDashboard extends JFrame {
             return;
         }
 
-        int rentalId   = (int) rentalsTable.getValueAt(row, 0);
-        String cusName = rentalsTable.getValueAt(row, 1).toString();
-        String email   = rentalsTable.getValueAt(row, 2).toString();
+        int rentalId    = (int) rentalsTable.getValueAt(row, 0);
+        String cusName  = rentalsTable.getValueAt(row, 1).toString();
+        String email    = rentalsTable.getValueAt(row, 2).toString();
         Object empIdObj = rentalsTable.getValueAt(row, 7);
 
         boolean isSupervisor = (empIdObj != null &&
@@ -603,7 +649,6 @@ public class EmployeeDashboard extends JFrame {
         String mobile = null;
 
         if (isSupervisor) {
-            // نجيب الموبايل فقط لو انه مشرف
             String sql = "SELECT Cus_mobile FROM CUSTOMER WHERE Cus_name = ?";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, cusName);
@@ -634,7 +679,7 @@ public class EmployeeDashboard extends JFrame {
     // ============ OTHER VIEWS ============
 
     private void showAllEquipments() {
-        String sql = "SELECT Equip_id, Type, Model, Price, Status FROM EQUIPMENT";
+        String sql = "SELECT id, type, model, price, stat FROM equipment1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -644,11 +689,11 @@ public class EmployeeDashboard extends JFrame {
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                        rs.getInt("Equip_id"),
-                        rs.getString("Type"),
-                        rs.getString("Model"),
-                        rs.getDouble("Price"),
-                        rs.getString("Status")
+                        rs.getInt("id"),
+                        rs.getString("type"),
+                        rs.getString("model"),
+                        rs.getDouble("price"),
+                        rs.getString("stat")
                 });
             }
 
@@ -760,9 +805,9 @@ public class EmployeeDashboard extends JFrame {
             JOptionPane.showMessageDialog(this, "Error deleting employee record");
         }
     }
- // يفتح دايلوج بثلاث خيارات: Add / Update / Delete
+ // يفتح دايلوج بثلاث خيارات: Update price / Delete / Cancel
     private void handleManageEquipment() {
-        String[] options = {"Add new", "Update price", "Delete", "Cancel"};
+        String[] options = {"Update price", "Delete", "Cancel"};
 
         int choice = JOptionPane.showOptionDialog(
                 this,
@@ -776,203 +821,16 @@ public class EmployeeDashboard extends JFrame {
         );
 
         if (choice == 0) {
-            // إضافة معدّة جديدة (يستدعي كود الإضافة اللي عندك)
-            addNewEquipment();     // لو كان اسم دالتك مختلف عدّليه هنا
+            // تحديث السعر بالـ ID  (الميثود اللي عندك أصلاً)
+            handleUpdateEquipmentById();
         } else if (choice == 1) {
-            handleUpdateEquipmentById();  // تحديث السعر
-        } else if (choice == 2) {
-            handleUpdateEquipmentById();  // حذف
+            // حذف المعدّة بالـ ID  (الميثود اللي عندك أصلاً)
+            handleDeleteEquipmentById();
         }
-        // لو Cancel أو إغلاق الدايالوج → ولا شي
+        // لو Cancel → ما نسوي شيء
     }
 
-
-    // يحدّث سعر معدّة فقط إذا كان هذا الموظف يشرف على رنتال لها
-    private void handleUpdateEquipmentById() {
-        String idStr = JOptionPane.showInputDialog(this,
-                "Enter Equip ID to update price:");
-        if (idStr == null || idStr.trim().isEmpty()) return;
-
-        int equipId;
-        try {
-            equipId = Integer.parseInt(idStr.trim());
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid Equip ID.");
-            return;
-        }
-
-        // نتأكد أنه يشرف على معدّة بهذا الرقم
-        if (!isEmployeeManagerOfEquip(equipId)) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "You are not supervising any rental for this equipment.",
-                    "Not allowed",
-                    JOptionPane.WARNING_MESSAGE
-            );
-            return;
-        }
-
-        String priceStr = JOptionPane.showInputDialog(this,
-                "Enter new price per day:");
-        if (priceStr == null || priceStr.trim().isEmpty()) return;
-
-        double newPrice;
-        try {
-            newPrice = Double.parseDouble(priceStr.trim());
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid price.");
-            return;
-        }
-
-        try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE EQUIPMENT SET Price = ? WHERE Equip_id = ?")) {
-            ps.setDouble(1, newPrice);
-            ps.setInt(2, equipId);
-            int rows = ps.executeUpdate();
-
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "Price updated successfully.");
-                loadManagedEquipment();
-            } else {
-                JOptionPane.showMessageDialog(this, "Equipment not found.");
-            }
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error updating price.");
-        }
-    }
-    private boolean isEmployeeManagerOfEquip(int equipId) {
-		// TODO Auto-generated method stub
-		return false;
-	}
- // يحدّث سعر معدّة فقط إذا كان هذا الموظف يشرف على رنتال لها
-    private void handleUpdateEquipmentById1() {
-        String idStr = JOptionPane.showInputDialog(this,
-                "Enter Equip ID to update price:");
-        if (idStr == null || idStr.trim().isEmpty()) return;
-
-        int equipId;
-        try {
-            equipId = Integer.parseInt(idStr.trim());
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid Equip ID.");
-            return;
-        }
-
-        // نتأكد أنه يشرف على معدّة بهذا الرقم
-        if (!isEmployeeManagerOfEquip(equipId)) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "You are not supervising any rental for this equipment.",
-                    "Not allowed",
-                    JOptionPane.WARNING_MESSAGE
-            );
-            return;
-        }
-
-        String priceStr = JOptionPane.showInputDialog(this,
-                "Enter new price per day:");
-        if (priceStr == null || priceStr.trim().isEmpty()) return;
-
-        double newPrice;
-        try {
-            newPrice = Double.parseDouble(priceStr.trim());
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid price.");
-            return;
-        }
-
-        try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE EQUIPMENT SET Price = ? WHERE Equip_id = ?")) {
-            ps.setDouble(1, newPrice);
-            ps.setInt(2, equipId);
-            int rows = ps.executeUpdate();
-
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "Price updated successfully.");
-                loadManagedEquipment();
-            } else {
-                JOptionPane.showMessageDialog(this, "Equipment not found.");
-            }
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error updating price.");
-        }
-    }
-    private void handleDeleteEquipmentById() {
-        String idStr = JOptionPane.showInputDialog(this,
-                "Enter Equip ID to delete:");
-        if (idStr == null || idStr.trim().isEmpty()) return;
-
-        int equipId;
-        try {
-            equipId = Integer.parseInt(idStr.trim());
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid Equip ID.");
-            return;
-        }
-
-        // نتأكد أنه يشرف على معدّة بهذا الرقم
-        if (!isEmployeeManagerOfEquip(equipId)) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "You are not supervising any rental for this equipment.",
-                    "Not allowed",
-                    JOptionPane.WARNING_MESSAGE
-            );
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Are you sure you want to delete equipment #" + equipId + "?",
-                "Confirm delete",
-                JOptionPane.YES_NO_OPTION
-        );
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        try (PreparedStatement ps = conn.prepareStatement(
-                "DELETE FROM EQUIPMENT WHERE Equip_id = ?")) {
-            ps.setInt(1, equipId);
-            int rows = ps.executeUpdate();
-
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "Equipment deleted.");
-                loadManagedEquipment();
-            } else {
-                JOptionPane.showMessageDialog(this, "Equipment not found.");
-            }
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error deleting equipment.");
-        }
-    }
- // يتحقق أن الموظف الحالي يشرف على رنتال فيها هذا الـ Equip_id
-    private boolean isEmployeeManagerOfEquip1(int equipId) {
-        String sql =
-                "SELECT COUNT(*) AS cnt " +
-                "FROM RENTAL R " +
-                "JOIN MAKES M ON R.Rental_id = M.Rent_id " +
-                "WHERE R.Employee_id = ? AND M.Equip_id = ?";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, employeeId);
-            ps.setInt(2, equipId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("cnt") > 0;
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error checking equipment manager.");
-        }
-        return false;
-    }
-	// ============ HELPERS ============
+    // ============ HELPERS ============
 
     private int getNextId(String table, String column) throws SQLException {
         String sql = "SELECT COALESCE(MAX(" + column + "), 0) + 1 AS next_id FROM " + table;

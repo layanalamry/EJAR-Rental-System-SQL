@@ -1,12 +1,6 @@
-
-import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-
 import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
 
 public class EjarLogin extends JFrame {
 
@@ -14,8 +8,8 @@ public class EjarLogin extends JFrame {
     private JRadioButton employeeRadio;
     private JLabel inputLabel;
     private JTextField inputField;
-    private JPasswordField passwordField;   // حقل الباسوورد
-    private JLabel passwordHint;            // الهينت تحت الباسوورد
+    private JPasswordField passwordField;
+    private JLabel passwordHint;
 
     public EjarLogin() {
         setTitle("EJAR - Login");
@@ -23,24 +17,23 @@ public class EjarLogin extends JFrame {
         setSize(1000, 600);
         setLocationRelativeTo(null);
 
-        // ========= خلفية صورة اللوق ان =========
+        // ========= خلفية صورة اللوق إن =========
         String imgPath = "C:/Users/norah/Downloads/login pic.jpeg";
 
         ImageIcon bgIcon = new ImageIcon(imgPath);
-        JLabel background = new JLabel(bgIcon);   // نخلي الصورة على لابل
-        background.setLayout(new GridBagLayout()); // نحط الفورم في النص
+        JLabel background = new JLabel(bgIcon);
+        background.setLayout(new GridBagLayout());
 
         setContentPane(background);
 
-        // نحط كرت اللوق ان في وسط الصورة
         background.add(buildLoginCard());
     }
 
-    // ========= كرت اللوق إن فوق الخلفية =========
     private JPanel buildLoginCard() {
+
         JPanel card = new JPanel(new GridBagLayout());
         card.setOpaque(true);
-        card.setBackground(new Color(255, 255, 255, 220)); // أبيض شفاف شوي
+        card.setBackground(new Color(255, 255, 255, 220));
 
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(96, 111, 131), 2),
@@ -79,7 +72,6 @@ public class EjarLogin extends JFrame {
         passwordField = new JPasswordField();
         passwordField.setFont(new Font("Serif", Font.PLAIN, 15));
 
-        // ===== الهينت تحت الباسوورد =====
         passwordHint = new JLabel("Hint: Password = last 4 digits of your mobile number.");
         passwordHint.setFont(new Font("Serif", Font.PLAIN, 12));
         passwordHint.setForeground(Color.DARK_GRAY);
@@ -92,20 +84,17 @@ public class EjarLogin extends JFrame {
         styleMainButton(registerButton);
         registerButton.addActionListener(e -> handleRegister());
 
-        // panel للأزرار (Login / Register)
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         buttonsPanel.setOpaque(false);
         buttonsPanel.add(loginButton);
         buttonsPanel.add(registerButton);
 
-        // ترتيب العناصر داخل الكرت
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
         card.add(title, gbc);
 
         gbc.gridy++;
         gbc.gridwidth = 1;
         card.add(customerRadio, gbc);
-
         gbc.gridx = 1;
         card.add(employeeRadio, gbc);
 
@@ -115,22 +104,18 @@ public class EjarLogin extends JFrame {
         gbc.gridx = 1;
         card.add(inputField, gbc);
 
-        // صف الباسوورد
         gbc.gridx = 0; gbc.gridy++;
         card.add(passLabel, gbc);
 
         gbc.gridx = 1;
         card.add(passwordField, gbc);
 
-        // صف الهينت
         gbc.gridx = 0; gbc.gridy++;
         gbc.gridwidth = 2;
         card.add(passwordHint, gbc);
 
-        // الأزرار
         gbc.gridx = 0; gbc.gridy++;
         gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.CENTER;
         card.add(buttonsPanel, gbc);
 
         return card;
@@ -147,14 +132,10 @@ public class EjarLogin extends JFrame {
     private void updateInputLabel() {
         if (customerRadio.isSelected()) {
             inputLabel.setText("Customer name:");
-            if (passwordHint != null) {
-                passwordHint.setText("Hint: Password = last 4 digits of your mobile number.");
-            }
+            passwordHint.setText("Hint: Password = last 4 digits of your mobile number.");
         } else {
             inputLabel.setText("Employee ID:");
-            if (passwordHint != null) {
-                passwordHint.setText("Hint: Use your default company password.");
-            }
+            passwordHint.setText("Hint: Use your default company password.");
         }
     }
 
@@ -164,148 +145,113 @@ public class EjarLogin extends JFrame {
         String password = new String(passwordField.getPassword()).trim();
 
         if (text.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Please enter your " +
-                            (customerRadio.isSelected() ? "name" : "employee ID") +
+            JOptionPane.showMessageDialog(this,
+                    "Please enter your " + (customerRadio.isSelected() ? "name" : "employee ID") +
                             " and password.",
                     "Missing information",
-                    JOptionPane.WARNING_MESSAGE
-            );
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         if (customerRadio.isSelected()) {
-            // ====== CUSTOMER LOGIN ======
-            String customerName = text;
-
-            try (Connection conn = DBConnection.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(
-                         "SELECT Cus_name, Cus_mobile FROM CUSTOMER WHERE Cus_name = ?")) {
-
-                ps.setString(1, customerName);
-                ResultSet rs = ps.executeQuery();
-
-                if (!rs.next()) {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Customer not found in database.",
-                            "Login error",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                    return;
-                }
-
-                String mobile = rs.getString("Cus_mobile");
-                if (mobile == null) mobile = "";
-
-                // آخر 4 أرقام من الجوال هي الباسوورد
-                String last4 = mobile.length() >= 4
-                        ? mobile.substring(mobile.length() - 4)
-                        : mobile;
-
-                if (!password.equals(last4)) {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Incorrect password.",
-                            "Login error",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                    return;
-                }
-
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Database error while checking customer.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-                return;
-            }
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Welcome, " + customerName + "!",
-                    "Login successful",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            CustomerDashboard cd = new CustomerDashboard(customerName);
-            cd.setVisible(true);
-
+            handleCustomerLogin(text, password);
         } else {
-            // ====== EMPLOYEE LOGIN ======
-            int empId;
-            try {
-                empId = Integer.parseInt(text);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Employee ID must be a number.",
-                        "Input error",
-                        JOptionPane.WARNING_MESSAGE
-                );
+            handleEmployeeLogin(text, password);
+        }
+    }
+
+    private void handleCustomerLogin(String customerName, String password) {
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT Cus_mobile FROM CUSTOMER WHERE Cus_name = ?")) {
+
+            ps.setString(1, customerName);
+            ResultSet rs = ps.executeQuery();
+
+            if (!rs.next()) {
+                JOptionPane.showMessageDialog(this,
+                        "Customer not found.",
+                        "Login error",
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // نشيك أنه موجود في DB
-            String empName = null;
-            try (Connection conn = DBConnection.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(
-                         "SELECT Emp_name FROM EMPLOYEE WHERE Emp_id = ?")) {
+            String mobile = rs.getString("Cus_mobile");
+            String last4 = mobile.substring(mobile.length() - 4);
 
-                ps.setInt(1, empId);
-                ResultSet rs = ps.executeQuery();
-
-                if (!rs.next()) {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Employee not found in database.",
-                            "Login error",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                    return;
-                }
-
-                empName = rs.getString("Emp_name");
-
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Database error while checking employee.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE
-                );
-                return;
-            }
-
-            // باسوورد موحد للموظفين
-            if (!password.equals("1234")) {
-                JOptionPane.showMessageDialog(
-                        this,
+            if (!password.equals(last4)) {
+                JOptionPane.showMessageDialog(this,
                         "Incorrect password.",
                         "Login error",
-                        JOptionPane.ERROR_MESSAGE
-                );
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Welcome, " + empName + " (ID " + empId + ")",
+            JOptionPane.showMessageDialog(this,
+                    "Welcome, " + customerName + "!",
                     "Login successful",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+                    JOptionPane.INFORMATION_MESSAGE);
 
-            EmployeeDashboard ed = new EmployeeDashboard(empId, empName);
-            ed.setVisible(true);
+            CustomerDashboard cd = new CustomerDashboard(customerName, false);
+            cd.setVisible(true);
+            dispose();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void handleEmployeeLogin(String id, String password) {
+
+        int empId;
+        try {
+            empId = Integer.parseInt(id);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Employee ID must be a number.",
+                    "Error",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
-        // نقفل شاشة اللوق إن بعد ما نفتح البورتل
-        dispose();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT Emp_name FROM EMPLOYEE WHERE Emp_id = ?")) {
+
+            ps.setInt(1, empId);
+            ResultSet rs = ps.executeQuery();
+
+            if (!rs.next()) {
+                JOptionPane.showMessageDialog(this,
+                        "Employee not found.",
+                        "Login error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (!password.equals("1234")) {
+                JOptionPane.showMessageDialog(this,
+                        "Incorrect password.",
+                        "Login error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String name = rs.getString("Emp_name");
+
+            JOptionPane.showMessageDialog(this,
+                    "Welcome, " + name,
+                    "Login successful",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            EmployeeDashboard ed = new EmployeeDashboard(empId, name);
+            ed.setVisible(true);
+            dispose();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     // ==================== REGISTER ====================
@@ -318,8 +264,9 @@ public class EjarLogin extends JFrame {
     }
 
     private void registerCustomer() {
-        JTextField nameField   = new JTextField();
-        JTextField emailField  = new JTextField();
+
+        JTextField nameField = new JTextField();
+        JTextField emailField = new JTextField();
         JTextField mobileField = new JTextField();
 
         JPanel panel = new JPanel(new GridLayout(3, 2, 5, 5));
@@ -330,23 +277,19 @@ public class EjarLogin extends JFrame {
         panel.add(new JLabel("Mobile:"));
         panel.add(mobileField);
 
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                panel,
-                "Customer registration",
-                JOptionPane.OK_CANCEL_OPTION
-        );
+        int result = JOptionPane.showConfirmDialog(this, panel,
+                "Customer registration", JOptionPane.OK_CANCEL_OPTION);
 
         if (result != JOptionPane.OK_OPTION) return;
 
-        String name   = nameField.getText().trim();
-        String email  = emailField.getText().trim();
+        String name = nameField.getText().trim();
+        String email = emailField.getText().trim();
         String mobile = mobileField.getText().trim();
 
         if (name.isEmpty() || email.isEmpty() || mobile.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "All fields are required.",
-                    "Input error",
+                    "Error",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -361,87 +304,54 @@ public class EjarLogin extends JFrame {
             ps.executeUpdate();
 
             JOptionPane.showMessageDialog(this,
-                    "Customer registered successfully! You can now login.",
+                    "Customer registered successfully!",
                     "Registered",
                     JOptionPane.INFORMATION_MESSAGE);
 
-        } catch (SQLIntegrityConstraintViolationException dup) {
-            JOptionPane.showMessageDialog(this,
-                    "Customer already exists (name or email in use).",
-                    "Register error",
-                    JOptionPane.ERROR_MESSAGE);
+            CustomerDashboard cd = new CustomerDashboard(name, true);
+            cd.setVisible(true);
+            dispose();
+
         } catch (SQLException ex) {
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(this,
-                    "Database error while registering customer.",
+                    "Customer already exists.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void registerEmployee() {
-        JTextField idField   = new JTextField();
+
+        JTextField idField = new JTextField();
         JTextField nameField = new JTextField();
 
         JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
         panel.add(new JLabel("Employee ID:"));
         panel.add(idField);
-        panel.add(new JLabel("Employee name:"));
+        panel.add(new JLabel("Name:"));
         panel.add(nameField);
 
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                panel,
-                "Employee registration",
-                JOptionPane.OK_CANCEL_OPTION
-        );
+        int result = JOptionPane.showConfirmDialog(this, panel,
+                "Employee registration", JOptionPane.OK_CANCEL_OPTION);
 
         if (result != JOptionPane.OK_OPTION) return;
-
-        String idText = idField.getText().trim();
-        String name   = nameField.getText().trim();
-
-        if (idText.isEmpty() || name.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Both ID and name are required.",
-                    "Input error",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        int empId;
-        try {
-            empId = Integer.parseInt(idText);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Employee ID must be a number.",
-                    "Input error",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "INSERT INTO EMPLOYEE (Emp_id, Emp_name) VALUES (?, ?)")) {
 
-            ps.setInt(1, empId);
-            ps.setString(2, name);
+            ps.setInt(1, Integer.parseInt(idField.getText().trim()));
+            ps.setString(2, nameField.getText().trim());
             ps.executeUpdate();
 
             JOptionPane.showMessageDialog(this,
-                    "Employee registered successfully! You can now login.",
+                    "Employee registered successfully!",
                     "Registered",
                     JOptionPane.INFORMATION_MESSAGE);
 
-        } catch (SQLIntegrityConstraintViolationException dup) {
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
-                    "This employee ID already exists.",
-                    "Register error",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Database error while registering employee.",
+                    "Error registering employee",
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -449,8 +359,7 @@ public class EjarLogin extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            EjarLogin frame = new EjarLogin();
-            frame.setVisible(true);
+            new EjarLogin().setVisible(true);
         });
     }
 }
