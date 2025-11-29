@@ -238,7 +238,7 @@ public class EquipmentPanel extends JPanel {
 
         model.setRowCount(0);
 
-        final String sql = "SELECT Equip_id, Type, Model, Price, Status FROM EQUIPMENT ORDER BY Equip_id";
+        final String sql = "SELECT id, type, model, price, stat FROM EQUIPMENT1 ORDER BY id";
 
         try (Connection c = DBConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql);
@@ -246,11 +246,11 @@ public class EquipmentPanel extends JPanel {
 
             while (rs.next()) {
                 Vector<Object> row = new Vector<>();
-                row.add(rs.getInt("Equip_id"));
-                row.add(rs.getString("Type"));
-                row.add(rs.getString("Model"));
-                row.add(rs.getDouble("Price"));
-                row.add(rs.getString("Status"));
+                row.add(rs.getInt("id"));
+                row.add(rs.getString("type"));
+                row.add(rs.getString("model"));
+                row.add(rs.getDouble("price"));
+                row.add(rs.getString("stat"));
                 model.addRow(row);
             }
 
