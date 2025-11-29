@@ -1,4 +1,3 @@
-import javax.swing.*;
 
 import java.awt.*;
 import java.sql.*;
@@ -6,6 +5,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 import javax.swing.JFrame;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 public class CustomerDashboard extends JFrame {
@@ -55,7 +55,7 @@ public class CustomerDashboard extends JFrame {
         try {
             conn = DBConnection.getConnection();
             loadAvailableFromDB();
-            loadCustomerInfoFromDB();   // <-- هنا نعبّي معلومات الكستمر ونحطها في الليبل
+            loadCustomerInfoFromDB();   // نعبّي معلومات الكستمر ونحطها في الليبل
         } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "DB connection error");
@@ -225,7 +225,7 @@ public class CustomerDashboard extends JFrame {
         JButton updateInfoBtn = makeBtn("Update My Info");
         updateInfoBtn.addActionListener(e -> openUpdateInfoWindow());
 
-        // ما في زر Back زي ما اتفقنا
+        // ما في زر Back
         bar.add(rentalsBtn);
         bar.add(cancelBtn);
         bar.add(paymentsBtn);
@@ -295,22 +295,25 @@ public class CustomerDashboard extends JFrame {
             int rentalId  = getNextId("RENTAL",  "Rental_id");
             int invoiceId = getNextId("PAYMENT", "Invoice");
 
+            // 👇👇 التعديل هنا: شلنا Employee_id من الأعمدة
             String rentalSql =
-                    "INSERT INTO RENTAL " +
-                    "(Rental_id, Start_date, End_date, City, Zip_code, Tot_price, Equip_id, C_name, Employee_id) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = conn.prepareStatement(rentalSql)) {
-                ps.setInt(1, rentalId);
-                ps.setString(2, start);
-                ps.setString(3, end);
-                ps.setString(4, city);
-                ps.setString(5, zip);
-                ps.setDouble(6, totalPrice);
-                ps.setInt(7, Integer.parseInt(equipId));
-                ps.setString(8, customerName);
-                ps.setInt(9, 1); // employee id افتراضي
-                ps.executeUpdate();
-            }
+        "INSERT INTO RENTAL " +
+        "(Rental_id, Start_date, End_date, City, Zip_code, Employee_id) " +
+        "VALUES (?, ?, ?, ?, ?, ?)"; // add ? for Employee_id
+
+try (PreparedStatement ps = conn.prepareStatement(rentalSql)) {
+    ps.setInt(1, rentalId);
+    ps.setString(2, start);
+    ps.setString(3, end);
+    ps.setString(4, city);
+    ps.setString(5, zip);
+
+    // Set Employee_id to NULL
+    ps.setNull(6, java.sql.Types.INTEGER); // <-- this inserts SQL NULL
+
+    ps.executeUpdate();
+}
+
 
             String paySql =
                     "INSERT INTO PAYMENT (Invoice, Pay_date, Total_price, P_rental) " +
@@ -322,7 +325,7 @@ public class CustomerDashboard extends JFrame {
                 ps.executeUpdate();
             }
 
-            String makesSql = "INSERT INTO MAKES (C_name, Equip_id, Rent_id) VALUES (?, ?, ?)";
+            String makesSql = "INSERT INTO MAKES (C_name, Equ_id, Rent_id) VALUES (?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(makesSql)) {
                 ps.setString(1, customerName);
                 ps.setInt(2, Integer.parseInt(equipId));
@@ -330,11 +333,11 @@ public class CustomerDashboard extends JFrame {
                 ps.executeUpdate();
             }
 
-            String updateEquip = "UPDATE EQUIPMENT SET Status = 'Rented' WHERE Equip_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(updateEquip)) {
-                ps.setInt(1, Integer.parseInt(equipId));
-                ps.executeUpdate();
-            }
+            // String updateEquip = "UPDATE EQUIPMENT SET Status = 'Rented' WHERE Equip_id = ?";
+            // try (PreparedStatement ps = conn.prepareStatement(updateEquip)) {
+            //     ps.setInt(1, Integer.parseInt(equipId));
+            //     ps.executeUpdate();
+            // }
 
             conn.commit();
             conn.setAutoCommit(true);
@@ -364,40 +367,40 @@ public class CustomerDashboard extends JFrame {
 
     // ===================== OTHER BUTTONS =====================
 
-    private void openMyRentals() {
-        String sql = "SELECT R.Rental_id, R.Start_date, R.End_date, R.City, R.Zip_code, R.Tot_price " +
-                "FROM RENTAL R JOIN MAKES M ON R.Rental_id = M.Rent_id " +
-                "WHERE M.C_name = ?";
+private void openMyRentals() {
+    String sql = "SELECT R.Rental_id, R.Start_date, R.End_date, R.City, R.Zip_code " +
+                 "FROM RENTAL R JOIN MAKES M ON R.Rental_id = M.Rent_id " +
+                 "WHERE M.C_name = ?";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, customerName);
-            ResultSet rs = ps.executeQuery();
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, customerName);
+        ResultSet rs = ps.executeQuery();
 
-            String[] cols = {"Rental ID", "Start", "End", "City", "Zip", "Total Price"};
-            DefaultTableModel model = new DefaultTableModel(cols, 0);
+        String[] cols = {"Rental ID", "Start", "End", "City", "Zip"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0);
 
-            while (rs.next()) {
-                model.addRow(new Object[]{
-                        rs.getInt("Rental_id"),
-                        rs.getString("Start_date"),
-                        rs.getString("End_date"),
-                        rs.getString("City"),
-                        rs.getString("Zip_code"),
-                        rs.getDouble("Tot_price")
-                });
-            }
-
-            JTable table = new JTable(model);
-            JScrollPane scroll = new JScrollPane(table);
-            scroll.setPreferredSize(new Dimension(600, 220));
-
-            JOptionPane.showMessageDialog(this, scroll, "My Rentals", JOptionPane.PLAIN_MESSAGE);
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error loading rentals");
+        while (rs.next()) {
+            model.addRow(new Object[]{
+                    rs.getInt("Rental_id"),
+                    rs.getString("Start_date"),
+                    rs.getString("End_date"),
+                    rs.getString("City"),
+                    rs.getString("Zip_code")
+            });
         }
+
+        JTable table = new JTable(model);
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setPreferredSize(new Dimension(600, 220));
+
+        JOptionPane.showMessageDialog(this, scroll, "My Rentals", JOptionPane.PLAIN_MESSAGE);
+
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error loading rentals");
     }
+}
+
 
     private void openMyPayments() {
         String sql = "SELECT P.Invoice, P.Pay_date, P.Total_price " +
@@ -449,14 +452,14 @@ public class CustomerDashboard extends JFrame {
         try {
             conn.setAutoCommit(false);
 
-            String checkSql = "SELECT Equip_id FROM MAKES WHERE Rent_id = ? AND C_name = ?";
+            String checkSql = "SELECT Equ_id FROM MAKES WHERE Rent_id = ? AND C_name = ?";
             int equipId = -1;
             try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
                 ps.setInt(1, rentalId);
                 ps.setString(2, customerName);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        equipId = rs.getInt("Equip_id");
+                        equipId = rs.getInt("Equ_id");
                     } else {
                         JOptionPane.showMessageDialog(this,
                                 "Rental does not belong to this customer.");
@@ -467,7 +470,7 @@ public class CustomerDashboard extends JFrame {
             }
 
             try (PreparedStatement ps = conn.prepareStatement(
-                    "DELETE FROM PAYMENT WHERE P_rental = ?")) {
+                   "UPDATE PAYMENT SET Total_price = 0 WHERE P_rental = ?")) {
                 ps.setInt(1, rentalId);
                 ps.executeUpdate();
             }
@@ -478,17 +481,17 @@ public class CustomerDashboard extends JFrame {
                 ps.executeUpdate();
             }
 
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "DELETE FROM RENTAL WHERE Rental_id = ?")) {
-                ps.setInt(1, rentalId);
-                ps.executeUpdate();
-            }
+            // try (PreparedStatement ps = conn.prepareStatement(
+            //         "DELETE FROM RENTAL WHERE Rental_id = ?")) {
+            //     ps.setInt(1, rentalId);
+            //     ps.executeUpdate();
+            // }
 
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE EQUIPMENT SET Status = 'Available' WHERE Equip_id = ?")) {
-                ps.setInt(1, equipId);
-                ps.executeUpdate();
-            }
+            // try (PreparedStatement ps = conn.prepareStatement(
+            //         "UPDATE EQUIPMENT SET Status = 'Available' WHERE Equip_id = ?")) {
+            //     ps.setInt(1, equipId);
+            //     ps.executeUpdate();
+            // }
 
             conn.commit();
             conn.setAutoCommit(true);
@@ -554,33 +557,32 @@ public class CustomerDashboard extends JFrame {
 
     // ===================== LOAD AVAILABLE EQUIP =====================
 
-    // ===================== LOAD AVAILABLE EQUIP =====================
-private void loadAvailableFromDB() {
-    // نستخدم الــ view اللي اسمه equipment1
-    String sql = "SELECT id, type, model, price, stat " +
-                 "FROM equipment1 " +
-                 "WHERE stat = 'available'";
+    private void loadAvailableFromDB() {
+        // نستخدم الــ view اللي اسمه equipment1
+        String sql = "SELECT id, type, model, price, stat " +
+                     "FROM equipment1 " +
+                     "WHERE stat = 'available'";
 
-    try (PreparedStatement ps = conn.prepareStatement(sql);
-         ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
-        DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
-        m.setRowCount(0);
+            DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
+            m.setRowCount(0);
 
-        while (rs.next()) {
-            m.addRow(new Object[]{
-                    rs.getInt("id"),        // Equip_id
-                    rs.getString("type"),   // Type
-                    rs.getString("model"),  // Model
-                    rs.getDouble("price"),  // Price
-                    rs.getString("stat")    // Status (available / rented)
-            });
+            while (rs.next()) {
+                m.addRow(new Object[]{
+                        rs.getInt("id"),        // Equip_id
+                        rs.getString("type"),   // Type
+                        rs.getString("model"),  // Model
+                        rs.getDouble("price"),  // Price
+                        rs.getString("stat")    // Status
+                });
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading available equipment");
         }
-    } catch (SQLException ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Error loading available equipment");
     }
-}
 
     // ===================== LOAD CUSTOMER INFO =====================
 
@@ -598,7 +600,6 @@ private void loadAvailableFromDB() {
                     if (mobile == null) mobile = "";
                     if (email  == null) email  = "";
 
-                    // مثال: Mobile: 05xxxxxxx   |   Email: test@mail.com
                     String text = "Mobile: " + mobile;
                     if (!email.isEmpty()) {
                         text += "    |    Email: " + email;
