@@ -1,3 +1,4 @@
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -14,9 +15,7 @@ public class EquipmentPanel extends JPanel {
 
         setLayout(new BorderLayout(8,8));
 
-        // =======================
-        //    FORM SECTION
-        // =======================
+   
         JPanel form = new JPanel(new GridBagLayout());
         GridBagConstraints g = new GridBagConstraints();
         g.insets = new Insets(5,5,5,5);
@@ -68,9 +67,7 @@ public class EquipmentPanel extends JPanel {
 
         add(form, BorderLayout.NORTH);
 
-        // =======================
-        //    TABLE SECTION
-        // =======================
+      
         model = new DefaultTableModel(new Object[]{"Equip_id","Type","Model","Price","Status"},0) {
             @Override
             public boolean isCellEditable(int r,int c){ return false;}
@@ -79,9 +76,7 @@ public class EquipmentPanel extends JPanel {
         table = new JTable(model);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // =======================
-        // ACTIONS
-        // =======================
+      
         addBtn.addActionListener(e -> addEquipment());
         updateBtn.addActionListener(e -> updateEquipment());
         deleteBtn.addActionListener(e -> deleteEquipment());
@@ -102,10 +97,7 @@ public class EquipmentPanel extends JPanel {
         loadData();
     }
 
-    // =======================
-    //   CRUD METHODS
-    // =======================
-
+  
     private void addEquipment(){
 
         String idText   = txtId.getText().trim();
@@ -131,7 +123,7 @@ public class EquipmentPanel extends JPanel {
 
         if (status.isEmpty()) status = "Available";
 
-        final String sql = "INSERT INTO EQUIPMENT (Equip_id, Type, Model, Price, Status) VALUES (?,?,?,?,?)";
+        final String sql = "INSERT INTO EQUIPMENT (Equip_id, Type, Model, Price) VALUES (?,?,?,?)";
 
         try (Connection c = DBConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -140,7 +132,7 @@ public class EquipmentPanel extends JPanel {
             ps.setString(2, type);
             ps.setString(3, modelTxt);
             ps.setDouble(4, price);
-            ps.setString(5, status);
+            //ps.setString(5, status);
 
             ps.executeUpdate();
             msg("Equipment added.");
@@ -181,7 +173,7 @@ public class EquipmentPanel extends JPanel {
             return;
         }
 
-        final String sql = "UPDATE EQUIPMENT SET Type=?, Model=?, Price=?, Status=? WHERE Equip_id=?";
+        final String sql = "UPDATE EQUIPMENT SET Type=?, Model=?, Price=? WHERE Equip_id=?";
 
         try (Connection c = DBConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -189,8 +181,7 @@ public class EquipmentPanel extends JPanel {
             ps.setString(1, type);
             ps.setString(2, modelTxt);
             ps.setDouble(3, price);
-            ps.setString(4, status);
-            ps.setInt(5, id);
+            ps.setInt(4, id);
 
             ps.executeUpdate();
             msg("Equipment updated.");
@@ -202,48 +193,55 @@ public class EquipmentPanel extends JPanel {
         }
     }
 
- 
-private void deleteEquipment() {
+    private void deleteEquipment(){
 
-    int row = table.getSelectedRow();
-    if (row == -1){
-        msg("Select a row to delete.");
-        return;
-    }
-
-    int id = Integer.parseInt(model.getValueAt(row, 0).toString());
-
-    if (JOptionPane.showConfirmDialog(this,
-            "Delete equipment " + id + " ?",
-            "Confirm delete", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
-        return;
-
-    try (Connection c = DBConnection.getConnection()) {
-
-        // 1) Check if this equipment is used in any rental (MAKES table)
-        String checkSql = "SELECT COUNT(*) FROM MAKES WHERE Equip_id = ?";
-        try (PreparedStatement checkPs = c.prepareStatement(checkSql)) {
-            checkPs.setInt(1, id);
-            try (ResultSet rs = checkPs.executeQuery()) {
-                if (rs.next() && rs.getInt(1) > 0) {
-                    msg("Cannot delete: this equipment is used in one or more rentals (MAKES).");
-                    return;
-                }
-            }
+        int row = table.getSelectedRow();
+        if (row == -1){
+            msg("Select a row to delete.");
+            return;
         }
 
-        // 2) Safe to delete
-        String deleteSql = "DELETE FROM EQUIPMENT WHERE Equip_id = ?";
-        try (PreparedStatement delPs = c.prepareStatement(deleteSql)) {
-            delPs.setInt(1, id);
-            int affected = delPs.executeUpdate();
-            if (affected > 0) {
-                msg("Equipment deleted.");
-                loadData();
-                clearFields();
-            } else {
-                msg("No equipment found with id " + id + ".");
-            }
+        int id = Integer.parseInt(model.getValueAt(row,0).toString());
+
+        if (JOptionPane.showConfirmDialog(this,
+                "Delete equipment " + id + " ?",
+                "Confirm delete", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
+            return;
+
+        final String sql = "DELETE FROM EQUIPMENT WHERE Equip_id=?";
+
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            msg("Equipment deleted.");
+            loadData();
+            clearFields();
+
+        } catch (SQLException ex) {
+            error(ex);
+        }
+    }
+
+   private void loadData() {
+
+    model.setRowCount(0);
+
+    final String sql = "SELECT Equip_id, Type, Model, Price, Status FROM EQUIPMENT1 ORDER BY Equip_id";
+
+    try (Connection c = DBConnection.getConnection();
+         PreparedStatement ps = c.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
+
+        while (rs.next()) {
+            Vector<Object> row = new Vector<>();
+            row.add(rs.getInt("Equip_id"));
+            row.add(rs.getString("Type"));
+            row.add(rs.getString("Model"));
+            row.add(rs.getDouble("Price"));
+            row.add(rs.getString("Status")); // <-- VIEW column
+            model.addRow(row);
         }
 
     } catch (SQLException ex) {
@@ -251,34 +249,6 @@ private void deleteEquipment() {
     }
 }
 
-    private void loadData(){
-
-        model.setRowCount(0);
-
-        final String sql = "SELECT id, type, model, price, stat FROM EQUIPMENT1 ORDER BY id";
-
-        try (Connection c = DBConnection.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                Vector<Object> row = new Vector<>();
-                row.add(rs.getInt("id"));
-                row.add(rs.getString("type"));
-                row.add(rs.getString("model"));
-                row.add(rs.getDouble("price"));
-                row.add(rs.getString("stat"));
-                model.addRow(row);
-            }
-
-        } catch (SQLException ex) {
-            error(ex);
-        }
-    }
-
-    // =======================
-    //   HELPERS
-    // =======================
 
     private void clearFields(){
         txtId.setText("");

@@ -1,8 +1,21 @@
+
 import javax.swing.*;
 import java.awt.*;
 import java.sql.*;
 
 public class EjarLogin extends JFrame {
+
+    // ====== THEME ======
+    private static final Color BUTTER_YELLOW = new Color(245, 210, 90);
+    private static final Color BUTTON_DARK   = new Color(40, 40, 40);
+    private static final Color CARD_BG       = new Color(255, 255, 255, 235);
+    private static final Color BORDER_COLOR  = new Color(180, 180, 180);
+
+    private static final Font BASE_FONT   = new Font("Segoe UI", Font.PLAIN, 16);
+    private static final Font TITLE_FONT  = new Font("Segoe UI", Font.BOLD, 30);
+    private static final Font LABEL_FONT  = new Font("Segoe UI", Font.PLAIN, 16);
+    private static final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 16);
+    private static final Font HINT_FONT   = new Font("Segoe UI", Font.PLAIN, 12);
 
     private JRadioButton customerRadio;
     private JRadioButton employeeRadio;
@@ -17,40 +30,54 @@ public class EjarLogin extends JFrame {
         setSize(1000, 600);
         setLocationRelativeTo(null);
 
-        // ========= خلفية صورة اللوق إن =========
-        String imgPath = "C:/Users/norah/Downloads/login pic.jpeg";
+        // === Full-screen background image using BackgroundPanel (same as dashboards) ===
+        BackgroundPanel bg = new BackgroundPanel("/images/bg.jpg");   // this panel draws scaled image
+        bg.setLayout(new GridBagLayout());                   // center the login card
+        setContentPane(bg);
 
-        ImageIcon bgIcon = new ImageIcon(imgPath);
-        JLabel background = new JLabel(bgIcon);
-        background.setLayout(new GridBagLayout());
-
-        setContentPane(background);
-
-        background.add(buildLoginCard());
+        // center card
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        bg.add(buildLoginCard(), gbc);
     }
 
     private JPanel buildLoginCard() {
 
         JPanel card = new JPanel(new GridBagLayout());
         card.setOpaque(true);
-        card.setBackground(new Color(255, 255, 255, 220));
+        card.setBackground(CARD_BG);
 
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(96, 111, 131), 2),
-                BorderFactory.createEmptyBorder(20, 25, 20, 25)
+                BorderFactory.createLineBorder(BORDER_COLOR, 2),
+                BorderFactory.createEmptyBorder(25, 30, 25, 30)
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
 
+        // ===== Title strip =====
         JLabel title = new JLabel("Welcome to EJAR", SwingConstants.CENTER);
-        title.setFont(new Font("Serif", Font.BOLD, 24));
+        title.setFont(TITLE_FONT);
+        title.setForeground(Color.BLACK);
 
+        JPanel titleBar = new JPanel(new BorderLayout());
+        titleBar.setBackground(BUTTER_YELLOW);
+        titleBar.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        titleBar.add(title, BorderLayout.CENTER);
+
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        card.add(titleBar, gbc);
+
+        // ===== Role radio buttons =====
         customerRadio = new JRadioButton("Customer");
         employeeRadio = new JRadioButton("Employee");
         customerRadio.setOpaque(false);
         employeeRadio.setOpaque(false);
+        customerRadio.setFont(LABEL_FONT);
+        employeeRadio.setFont(LABEL_FONT);
 
         ButtonGroup group = new ButtonGroup();
         group.add(customerRadio);
@@ -60,43 +87,24 @@ public class EjarLogin extends JFrame {
         customerRadio.addActionListener(e -> updateInputLabel());
         employeeRadio.addActionListener(e -> updateInputLabel());
 
-        inputLabel = new JLabel("Customer name:");
-        inputLabel.setFont(new Font("Serif", Font.BOLD, 15));
-
-        inputField = new JTextField();
-        inputField.setFont(new Font("Serif", Font.PLAIN, 15));
-
-        JLabel passLabel = new JLabel("Password:");
-        passLabel.setFont(new Font("Serif", Font.BOLD, 15));
-
-        passwordField = new JPasswordField();
-        passwordField.setFont(new Font("Serif", Font.PLAIN, 15));
-
-        passwordHint = new JLabel("Hint: Password = last 4 digits of your mobile number.");
-        passwordHint.setFont(new Font("Serif", Font.PLAIN, 12));
-        passwordHint.setForeground(Color.DARK_GRAY);
-
-        JButton loginButton = new JButton("Login");
-        styleMainButton(loginButton);
-        loginButton.addActionListener(e -> handleLogin());
-
-        JButton registerButton = new JButton("Register");
-        styleMainButton(registerButton);
-        registerButton.addActionListener(e -> handleRegister());
-
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonsPanel.setOpaque(false);
-        buttonsPanel.add(loginButton);
-        buttonsPanel.add(registerButton);
-
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
-        card.add(title, gbc);
-
         gbc.gridy++;
         gbc.gridwidth = 1;
         card.add(customerRadio, gbc);
         gbc.gridx = 1;
         card.add(employeeRadio, gbc);
+
+        // ===== Input fields =====
+        inputLabel = new JLabel("Customer name:");
+        inputLabel.setFont(LABEL_FONT);
+
+        inputField = new JTextField();
+        inputField.setFont(BASE_FONT);
+
+        JLabel passLabel = new JLabel("Password:");
+        passLabel.setFont(LABEL_FONT);
+
+        passwordField = new JPasswordField();
+        passwordField.setFont(BASE_FONT);
 
         gbc.gridx = 0; gbc.gridy++;
         card.add(inputLabel, gbc);
@@ -110,9 +118,28 @@ public class EjarLogin extends JFrame {
         gbc.gridx = 1;
         card.add(passwordField, gbc);
 
+        // ===== Hint =====
+        passwordHint = new JLabel("Hint: Password = last 4 digits of your mobile number.");
+        passwordHint.setFont(HINT_FONT);
+        passwordHint.setForeground(new Color(80, 80, 80));
+
         gbc.gridx = 0; gbc.gridy++;
         gbc.gridwidth = 2;
         card.add(passwordHint, gbc);
+
+        // ===== Buttons =====
+        JButton loginButton = new JButton("Login");
+        styleMainButton(loginButton);
+        loginButton.addActionListener(e -> handleLogin());
+
+        JButton registerButton = new JButton("Register");
+        styleMainButton(registerButton);
+        registerButton.addActionListener(e -> handleRegister());
+
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonsPanel.setOpaque(false);
+        buttonsPanel.add(loginButton);
+        buttonsPanel.add(registerButton);
 
         gbc.gridx = 0; gbc.gridy++;
         gbc.gridwidth = 2;
@@ -122,11 +149,12 @@ public class EjarLogin extends JFrame {
     }
 
     private void styleMainButton(JButton btn) {
-        btn.setBackground(new Color(74, 88, 105));
+        btn.setBackground(BUTTON_DARK);
         btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Serif", Font.BOLD, 16));
+        btn.setFont(BUTTON_FONT);
         btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 24, 10, 24));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     private void updateInputLabel() {

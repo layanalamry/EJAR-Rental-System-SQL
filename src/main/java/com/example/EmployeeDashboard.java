@@ -1,5 +1,4 @@
 
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -7,10 +6,12 @@ import java.sql.*;
 
 public class EmployeeDashboard extends JFrame {
 
-    // Theme colors
-    private static final Color CARD_GREY   = new Color(230, 233, 238, 230);
-    private static final Color HEADER_GREY = new Color(96, 111, 131, 230);
-    private static final Color BUTTON_DARK = new Color(74, 88, 105);
+    // Theme colors (MATCH CUSTOMER STYLE)
+    private static final Color CARD_GREY     = new Color(230, 233, 238, 230);
+    // butter yellow same as customer
+    private static final Color BUTTER_YELLOW = new Color(245, 210, 90);
+    // dark black/grey for buttons
+    private static final Color BUTTON_DARK   = new Color(40, 40, 40);
 
     // Tables
     private JTable myEquipTable;
@@ -32,8 +33,8 @@ public class EmployeeDashboard extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        String bgPath = "C:/Users/norah/Downloads/backg.jpeg";
-        BackgroundPanel bg = new BackgroundPanel(bgPath);
+        //String bgPath = "C:\\Users\\user\\OneDrive\\Documents\\380CSC Database\\CSC380_Phase-3-_Group-5-_EJAR-Rental-System\\photo_2025-11-30_18-29-55.jpg";
+        BackgroundPanel bg = new BackgroundPanel("/images/dashboard.jpg");
         setContentPane(bg);
         bg.setLayout(new BorderLayout());
 
@@ -59,18 +60,18 @@ public class EmployeeDashboard extends JFrame {
     // ================= HEADER =================
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(HEADER_GREY);
+        header.setBackground(BUTTER_YELLOW); // yellow header
         header.setPreferredSize(new Dimension(0, 70));
         header.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         JLabel title = new JLabel("EJAR – Employee Dashboard", SwingConstants.LEFT);
         title.setFont(new Font("Serif", Font.BOLD, 28));
-        title.setForeground(Color.WHITE);
+        title.setForeground(Color.BLACK);   // black text
 
         JLabel info = new JLabel("ID: " + employeeId + "   |   " + employeeName,
                 SwingConstants.RIGHT);
         info.setFont(new Font("Serif", Font.BOLD, 16));
-        info.setForeground(Color.WHITE);
+        info.setForeground(Color.BLACK);    // black text
 
         header.add(title, BorderLayout.WEST);
         header.add(info, BorderLayout.EAST);
@@ -88,83 +89,120 @@ public class EmployeeDashboard extends JFrame {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.BOTH;
 
-        // Equipment card
+        // ===== LEFT: Equipment I Currently Manage =====
+        JPanel leftColumn = new JPanel(new BorderLayout());
+        leftColumn.setOpaque(false);
+        leftColumn.add(buildMyEquipCard(), BorderLayout.NORTH);
+
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 0.5;
+        gbc.weightx = 0.35;
         gbc.weighty = 0.6;
-        center.add(buildMyEquipCard(), gbc);
+        center.add(leftColumn, gbc);
 
-        // Rentals card
+        // ===== MIDDLE: Rentals card =====
         gbc.gridx = 1;
         gbc.gridy = 0;
-        gbc.weightx = 0.5;
+        gbc.weightx = 0.45;
         gbc.weighty = 0.6;
         center.add(buildRentalsCard(), gbc);
 
-        // My Info card
+        // ===== RIGHT: vertical menu of reports/buttons =====
+        JPanel rightColumn = new JPanel();
+        rightColumn.setOpaque(false);
+        rightColumn.setLayout(new BoxLayout(rightColumn, BoxLayout.Y_AXIS));
+        rightColumn.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        JButton addEquipBtn   = bigNavButton("Add New Equipment");
+        JButton allEquipBtn   = bigNavButton("All Equipments");
+        JButton abovePriceBtn = bigNavButton("Equipments above price");
+        JButton salesBtn      = bigNavButton("Sales by type");
+
+        // make them not stretch too wide
+        Dimension sideSize = new Dimension(230, 45);
+        addEquipBtn.setMaximumSize(sideSize);
+        allEquipBtn.setMaximumSize(sideSize);
+        abovePriceBtn.setMaximumSize(sideSize);
+        salesBtn.setMaximumSize(sideSize);
+
+        addEquipBtn.addActionListener(e -> addNewEquipment());
+        allEquipBtn.addActionListener(e -> showAllEquipments());
+        abovePriceBtn.addActionListener(e -> viewEquipmentsAbovePrice());
+        salesBtn.addActionListener(e -> viewTypeSales());
+
+        rightColumn.add(addEquipBtn);
+        rightColumn.add(Box.createVerticalStrut(10));
+        rightColumn.add(allEquipBtn);
+        rightColumn.add(Box.createVerticalStrut(10));
+        rightColumn.add(abovePriceBtn);
+        rightColumn.add(Box.createVerticalStrut(10));
+        rightColumn.add(salesBtn);
+        rightColumn.add(Box.createVerticalGlue());
+
         gbc.gridx = 2;
         gbc.gridy = 0;
-        gbc.weightx = 0.3;
+        gbc.weightx = 0.2;
         gbc.weighty = 0.6;
-        center.add(buildMyInfoCard(), gbc);
+        center.add(rightColumn, gbc);
 
         return center;
     }
 
-    // ============ EQUIPMENT CARD ============
+    // ============ EQUIPMENT CARD ============ 
     private JPanel buildMyEquipCard() {
         JPanel card = new JPanel(new BorderLayout(5, 5));
         card.setBackground(CARD_GREY);
-        card.setBorder(BorderFactory.createLineBorder(HEADER_GREY, 2));
-        card.setPreferredSize(new Dimension(360, 240));
+        card.setBorder(BorderFactory.createLineBorder(BUTTER_YELLOW, 2));
+        card.setPreferredSize(new Dimension(360, 220));   // taller so 3 buttons fit
 
-        JLabel header = new JLabel("Equipment", SwingConstants.CENTER);
-        header.setFont(new Font("Serif", Font.BOLD, 20));
+        JLabel header = new JLabel("Equipment I Currently Manage", SwingConstants.CENTER);
+        header.setFont(new Font("Serif", Font.BOLD, 18));
         header.setOpaque(true);
-        header.setBackground(HEADER_GREY);
-        header.setForeground(Color.WHITE);
+        header.setBackground(BUTTER_YELLOW);
+        header.setForeground(Color.BLACK);  // black text
         card.add(header, BorderLayout.NORTH);
 
-        // نستخدم الـ VIEW equipment1 عشان نجيب الـ Status (stat)
         String[] cols = {"Equip ID", "Type", "Model", "Price", "Status"};
         myEquipTable = new JTable(new DefaultTableModel(cols, 0));
         myEquipTable.setRowHeight(22);
         card.add(new JScrollPane(myEquipTable), BorderLayout.CENTER);
 
-        // ثلاثة أزرار: Add / Update / Delete
-     // === Buttons ===
-        JButton addBtn = new JButton("Add New Equipment");
-        JButton editBtn = new JButton("Update / Delete");
+        // ===== BUTTONS (VERTICAL) =====
+        JButton chooseBtn = new JButton("Choose equipment to manage");
+        JButton stopBtn   = new JButton("Stop managing");
+        JButton editBtn   = new JButton("Update / Delete");
 
-        styleMainButton(addBtn);
+        styleMainButton(chooseBtn);
+        styleMainButton(stopBtn);
         styleMainButton(editBtn);
 
-        addBtn.addActionListener(e -> addNewEquipment());
+        chooseBtn.addActionListener(e -> chooseEquipmentToManage());
+        stopBtn.addActionListener(e -> stopManagingEquipment());
         editBtn.addActionListener(e -> handleManageEquipment());
 
-        JPanel bottom = new JPanel();
-        bottom.setOpaque(false);
-        bottom.add(addBtn);
-        bottom.add(editBtn);
+        JPanel buttonsPanel = new JPanel(new GridLayout(3, 1, 5, 5)); // << important
+        buttonsPanel.setOpaque(false);
+        buttonsPanel.add(chooseBtn);
+        buttonsPanel.add(stopBtn);
+        buttonsPanel.add(editBtn);
 
-        card.add(bottom, BorderLayout.SOUTH);
+        card.add(buttonsPanel, BorderLayout.SOUTH);
 
         return card;
     }
 
-    // ============ RENTALS CARD ============
+    // ============ RENTALS CARD ============ 
     private JPanel buildRentalsCard() {
         JPanel card = new JPanel(new BorderLayout(5, 5));
         card.setBackground(CARD_GREY);
-        card.setBorder(BorderFactory.createLineBorder(HEADER_GREY, 2));
+        card.setBorder(BorderFactory.createLineBorder(BUTTER_YELLOW, 2));
         card.setPreferredSize(new Dimension(420, 260));
 
         JLabel header = new JLabel("Rentals", SwingConstants.CENTER);
         header.setFont(new Font("Serif", Font.BOLD, 20));
         header.setOpaque(true);
-        header.setBackground(HEADER_GREY);
-        header.setForeground(Color.WHITE);
+        header.setBackground(BUTTER_YELLOW);
+        header.setForeground(Color.BLACK); // black text
         card.add(header, BorderLayout.NORTH);
 
         String[] cols = {
@@ -200,18 +238,18 @@ public class EmployeeDashboard extends JFrame {
         return card;
     }
 
-    // ============ MY INFO CARD ============
+    // ============ MY INFO CARD ============ 
     private JPanel buildMyInfoCard() {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(CARD_GREY);
-        card.setBorder(BorderFactory.createLineBorder(HEADER_GREY, 2));
+        card.setBorder(BorderFactory.createLineBorder(BUTTER_YELLOW, 2));
         card.setPreferredSize(new Dimension(220, 180));
 
         JLabel header = new JLabel("My Info", SwingConstants.CENTER);
         header.setFont(new Font("Serif", Font.BOLD, 18));
         header.setOpaque(true);
-        header.setBackground(HEADER_GREY);
-        header.setForeground(Color.WHITE);
+        header.setBackground(BUTTER_YELLOW);
+        header.setForeground(Color.BLACK); // black text
         card.add(header, BorderLayout.NORTH);
 
         JPanel content = new JPanel();
@@ -241,31 +279,133 @@ public class EmployeeDashboard extends JFrame {
         return card;
     }
 
-    // ================= BOTTOM BAR =================
     private JPanel buildBottomBar() {
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 15));
+        // Align buttons to the RIGHT
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 25, 15));
         bar.setOpaque(false);
 
-        JButton allEquipBtn = bigNavButton("All Equipments");
-        allEquipBtn.addActionListener(e -> showAllEquipments());
-
-        JButton paymentsBtn = bigNavButton("Payments I supervise");
-        paymentsBtn.addActionListener(e -> showPaymentsForMyRentals());
+        JButton deleteMeBtn = bigNavButton("Delete My Record");
+        deleteMeBtn.addActionListener(e -> deleteMyEmployeeRecord());
 
         JButton logoutBtn = bigNavButton("Logout");
-        logoutBtn.addActionListener(e -> dispose());
+        // allow logout anytime → back to login screen
+        logoutBtn.addActionListener(e -> logoutAndReturnToFirstPage());
 
-        bar.add(allEquipBtn);
-        bar.add(paymentsBtn);
+        bar.add(deleteMeBtn);
         bar.add(logoutBtn);
 
         return bar;
     }
 
-    // ============ STYLING HELPERS ============
+    // ============ REPORT: Total sales per machinery type ============
+    private void viewTypeSales() {
+        String sql =
+                "SELECT E.Type, SUM(P.Total_price) AS Total_sales " +
+                "FROM EQUIPMENT E " +
+                "JOIN MAKES M   ON E.Equip_id = M.Equ_id " +
+                "JOIN RENTAL R  ON M.Rent_id  = R.Rental_id " +
+                "JOIN PAYMENT P ON R.Rental_id = P.P_rental " +
+                "GROUP BY E.Type " +
+                "ORDER BY Total_sales DESC";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            String[] cols = {"Type", "Total sales"};
+            DefaultTableModel tm = new DefaultTableModel(cols, 0);
+
+            while (rs.next()) {
+                tm.addRow(new Object[]{
+                        rs.getString("Type"),
+                        rs.getDouble("Total_sales")
+                });
+            }
+
+            JTable table = new JTable(tm);
+            table.setRowHeight(22);
+            JScrollPane scroll = new JScrollPane(table);
+            scroll.setPreferredSize(new Dimension(500, 240));
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    scroll,
+                    "Total sales per machinery type",
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading sales by type.");
+        }
+    }
+
+    // ============ REPORT: Equipments above chosen price ============
+    private void viewEquipmentsAbovePrice() {
+        String input = JOptionPane.showInputDialog(
+                this,
+                "Show equipments with price greater than:",
+                "Filter equipments by price",
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (input == null || input.trim().isEmpty()) {
+            return; // user canceled
+        }
+
+        double minPrice;
+        try {
+            minPrice = Double.parseDouble(input.trim());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid price value.");
+            return;
+        }
+
+        String sql =
+                "SELECT Equip_id, Type, Model, Price " +
+                "FROM EQUIPMENT " +
+                "WHERE Price > ? " +
+                "ORDER BY Price DESC";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDouble(1, minPrice);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                String[] cols = {"Equip ID", "Type", "Model", "Price"};
+                DefaultTableModel tm = new DefaultTableModel(cols, 0);
+
+                while (rs.next()) {
+                    tm.addRow(new Object[]{
+                            rs.getInt("Equip_id"),
+                            rs.getString("Type"),
+                            rs.getString("Model"),
+                            rs.getDouble("Price")
+                    });
+                }
+
+                JTable table = new JTable(tm);
+                table.setRowHeight(22);
+                JScrollPane scroll = new JScrollPane(table);
+                scroll.setPreferredSize(new Dimension(600, 260));
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        scroll,
+                        "Equipments with price > " + minPrice,
+                        JOptionPane.PLAIN_MESSAGE
+                );
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading equipments above price.");
+        }
+    }
+
+    // ============ STYLING HELPERS ============ 
     private void styleMainButton(JButton btn) {
-        btn.setBackground(BUTTON_DARK);
-        btn.setForeground(Color.WHITE);
+        btn.setBackground(BUTTON_DARK);        // black-ish
+        btn.setForeground(Color.WHITE);        // white text
         btn.setFont(new Font("Serif", Font.BOLD, 16));
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
@@ -273,8 +413,8 @@ public class EmployeeDashboard extends JFrame {
 
     private JButton bigNavButton(String text) {
         JButton btn = new JButton(text);
-        btn.setBackground(BUTTON_DARK);
-        btn.setForeground(Color.WHITE);
+        btn.setBackground(BUTTON_DARK);        // black-ish
+        btn.setForeground(Color.WHITE);        // white text
         btn.setFont(new Font("Serif", Font.BOLD, 18));
         btn.setFocusPainted(false);
         btn.setPreferredSize(new Dimension(220, 45));
@@ -282,30 +422,35 @@ public class EmployeeDashboard extends JFrame {
         return btn;
     }
 
-    // ============ DB LOADERS ============
+    // ============ DB LOADERS ============ 
 
-    // كل المعدات – من الـ VIEW equipment1 (فيه stat)
+    // المعدات التي يديرها هذا الموظف فقط (0 أو 1) من الـ VIEW equipment1
     private void loadManagedEquipment() {
-        String sql = "SELECT id, type, model, price, stat FROM equipment1";
+        String sql =
+                "SELECT Equip_id, Type, Model, Price, Status " +
+                "FROM equipment1 " +
+                "WHERE Equip_id = (SELECT Eq_id FROM EMPLOYEE WHERE Emp_id = ?)";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
 
-            DefaultTableModel model = (DefaultTableModel) myEquipTable.getModel();
-            model.setRowCount(0);
+                DefaultTableModel model = (DefaultTableModel) myEquipTable.getModel();
+                model.setRowCount(0);
 
-            while (rs.next()) {
-                model.addRow(new Object[]{
-                        rs.getInt("id"),
-                        rs.getString("type"),
-                        rs.getString("model"),
-                        rs.getDouble("price"),
-                        rs.getString("stat")
-                });
+                while (rs.next()) {
+                    model.addRow(new Object[]{
+                            rs.getInt("Equip_id"),
+                            rs.getString("Type"),
+                            rs.getString("Model"),
+                            rs.getDouble("Price"),
+                            rs.getString("Status")
+                    });
+                }
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error loading equipment list");
+            JOptionPane.showMessageDialog(this, "Error loading your equipment list");
         }
     }
 
@@ -349,7 +494,7 @@ public class EmployeeDashboard extends JFrame {
         }
     }
 
-    // ============ EQUIPMENT OPERATIONS ============
+    // ============ EQUIPMENT OPERATIONS ============ 
 
     // إضافة معدّة جديدة
     private void addNewEquipment() {
@@ -403,11 +548,125 @@ public class EmployeeDashboard extends JFrame {
             }
 
             JOptionPane.showMessageDialog(this, "Equipment added with ID " + newId);
-            loadManagedEquipment();
+            loadManagedEquipment();   // will show if this employee chooses it later
 
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error adding equipment");
+        }
+    }
+
+    // اختر معدّة لإدارتها – فقط إذا الموظف لا يدير أي معدّة الآن
+    private void chooseEquipmentToManage() {
+
+        // 1) This employee must not already manage something
+        String checkMine = "SELECT Eq_id FROM EMPLOYEE WHERE Emp_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(checkMine)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Integer myEq = (Integer) rs.getObject("Eq_id");
+                    if (myEq != null) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "You already manage equipment #" + myEq +
+                                ".\nStop managing it first before choosing another.",
+                                "Not allowed",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error checking your managed equipment");
+            return;
+        }
+
+        // 2) Ask which Equip_id to manage
+        String idStr = JOptionPane.showInputDialog(
+                this,
+                "Enter Equip ID you want to manage:"
+        );
+        if (idStr == null || idStr.trim().isEmpty()) return;
+
+        int equipId;
+        try {
+            equipId = Integer.parseInt(idStr.trim());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid Equip ID.");
+            return;
+        }
+
+        try {
+            // 3) Check that the equipment exists
+            String existsSql = "SELECT Equip_id FROM EQUIPMENT WHERE Equip_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(existsSql)) {
+                ps.setInt(1, equipId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        JOptionPane.showMessageDialog(this, "Equipment not found.");
+                        return;
+                    }
+                }
+            }
+
+            // 4) Assign this equipment to current employee
+            String updateSql = "UPDATE EMPLOYEE SET Eq_id = ? WHERE Emp_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                ps.setInt(1, equipId);
+                ps.setInt(2, employeeId);
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "You now manage equipment #" + equipId
+                    );
+                    loadManagedEquipment();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Update failed.");
+                }
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error assigning equipment manager");
+        }
+    }
+
+    // التوقف عن إدارة المعدّة الحالية المختارة في الجدول
+    private void stopManagingEquipment() {
+        int row = myEquipTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Please select an equipment first.");
+            return;
+        }
+
+        int equipId = (int) myEquipTable.getValueAt(row, 0);
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Stop managing equipment #" + equipId + "?",
+                "Confirm",
+                JOptionPane.YES_NO_OPTION
+        );
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        String sql = "UPDATE EMPLOYEE SET Eq_id = NULL WHERE Emp_id = ? AND Eq_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, equipId);
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                JOptionPane.showMessageDialog(this, "You no longer manage this equipment.");
+                loadManagedEquipment();
+            } else {
+                JOptionPane.showMessageDialog(this, "Update failed.");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error updating equipment manager");
         }
     }
 
@@ -428,7 +687,7 @@ public class EmployeeDashboard extends JFrame {
         if (!isEmployeeManagerOfEquip(equipId)) {
             JOptionPane.showMessageDialog(
                     this,
-                    "You are not supervising any rental for this equipment.",
+                    "You do not manage this equipment.",
                     "Not allowed",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -466,7 +725,7 @@ public class EmployeeDashboard extends JFrame {
         }
     }
 
-    // حذف المعدّة – مسموح فقط إذا الموظف مانجر عليها والمعدّة غير مستخدمة في MAKES
+    // حذف المعدّة – مسموح فقط إذا الموظف Manager عليها والمعدّة غير مستخدمة في MAKES
     private void handleDeleteEquipmentById() {
         String idStr = JOptionPane.showInputDialog(this,
                 "Enter Equip ID to delete:");
@@ -483,14 +742,14 @@ public class EmployeeDashboard extends JFrame {
         if (!isEmployeeManagerOfEquip(equipId)) {
             JOptionPane.showMessageDialog(
                     this,
-                    "You are not supervising any rental for this equipment.",
+                    "You do not manage this equipment.",
                     "Not allowed",
                     JOptionPane.WARNING_MESSAGE
             );
             return;
         }
 
-        // نتأكد أنها ليست مستخدمة في MAKES (يعني مو rented)
+        // نتأكد أنها ليست مستخدمة في MAKES
         String checkSql =
                 "SELECT COUNT(*) AS cnt " +
                 "FROM MAKES WHERE Equ_id = ?";
@@ -539,27 +798,50 @@ public class EmployeeDashboard extends JFrame {
         }
     }
 
-    // يتحقق أن الموظف الحالي Manager على أي رنتال فيها هذا الـ Equip_id
+    // يتحقق أن هذا الموظف هو Manager للمعدّة بحسب EMPLOYEE.Eq_id
     private boolean isEmployeeManagerOfEquip(int equipId) {
-        String sql =
-                "SELECT COUNT(*) AS cnt " +
-                "FROM RENTAL R " +
-                "JOIN MAKES M ON R.Rental_id = M.Rent_id " +
-                "WHERE R.Employee_id = ? AND M.Equ_id = ?";
+        String sql = "SELECT Eq_id FROM EMPLOYEE WHERE Emp_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
-            ps.setInt(2, equipId);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("cnt") > 0;
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int myEq = rs.getInt("Eq_id");
+                    if (!rs.wasNull() && myEq == equipId) {
+                        return true;
+                    }
+                }
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
         return false;
     }
-    // ============ RENTAL OPERATIONS ============
+
+    // يفتح دايلوج بثلاث خيارات: Update price / Delete / Cancel
+    private void handleManageEquipment() {
+        String[] options = {"Update price", "Delete", "Cancel"};
+
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Choose an action for equipment:",
+                "Manage Equipment",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (choice == 0) {
+            handleUpdateEquipmentById();
+        } else if (choice == 1) {
+            handleDeleteEquipmentById();
+        }
+        // Cancel → nothing
+    }
+
+    // ============ RENTAL OPERATIONS ============ 
 
     private void assignRentalToEmployee() {
         String rentalStr = JOptionPane.showInputDialog(this,
@@ -676,10 +958,10 @@ public class EmployeeDashboard extends JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // ============ OTHER VIEWS ============
+    // ============ OTHER VIEWS ============ 
 
     private void showAllEquipments() {
-        String sql = "SELECT id, type, model, price, stat FROM equipment1";
+        String sql = "SELECT Equip_id, Type, Model, Price, Status FROM equipment1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -689,11 +971,11 @@ public class EmployeeDashboard extends JFrame {
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                        rs.getInt("id"),
-                        rs.getString("type"),
-                        rs.getString("model"),
-                        rs.getDouble("price"),
-                        rs.getString("stat")
+                        rs.getInt("Equip_id"),
+                        rs.getString("Type"),
+                        rs.getString("Model"),
+                        rs.getDouble("Price"),
+                        rs.getString("Status")
                 });
             }
 
@@ -747,7 +1029,7 @@ public class EmployeeDashboard extends JFrame {
         }
     }
 
-    // ============ EMPLOYEE DELETE ============
+    // ============ EMPLOYEE DELETE ============ 
 
     private void deleteMyEmployeeRecord() {
         int confirm = JOptionPane.showConfirmDialog(
@@ -777,7 +1059,6 @@ public class EmployeeDashboard extends JFrame {
                 }
             }
 
-            // ما يشرف على شيء → نحذفه
             String delSql = "DELETE FROM EMPLOYEE WHERE Emp_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(delSql)) {
                 ps.setInt(1, employeeId);
@@ -789,7 +1070,7 @@ public class EmployeeDashboard extends JFrame {
                             "Deleted",
                             JOptionPane.INFORMATION_MESSAGE
                     );
-                    dispose();
+                    logoutAndReturnToFirstPage();
                 } else {
                     JOptionPane.showMessageDialog(
                             this,
@@ -805,32 +1086,15 @@ public class EmployeeDashboard extends JFrame {
             JOptionPane.showMessageDialog(this, "Error deleting employee record");
         }
     }
- // يفتح دايلوج بثلاث خيارات: Update price / Delete / Cancel
-    private void handleManageEquipment() {
-        String[] options = {"Update price", "Delete", "Cancel"};
 
-        int choice = JOptionPane.showOptionDialog(
-                this,
-                "Choose an action for equipment:",
-                "Manage Equipment",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-
-        if (choice == 0) {
-            // تحديث السعر بالـ ID  (الميثود اللي عندك أصلاً)
-            handleUpdateEquipmentById();
-        } else if (choice == 1) {
-            // حذف المعدّة بالـ ID  (الميثود اللي عندك أصلاً)
-            handleDeleteEquipmentById();
-        }
-        // لو Cancel → ما نسوي شيء
+    // ============ LOGOUT HELPER ============ 
+    private void logoutAndReturnToFirstPage() {
+        // close this window and go back to login screen
+        dispose();
+        SwingUtilities.invokeLater(() -> new EjarLogin().setVisible(true));
     }
 
-    // ============ HELPERS ============
+    // ============ HELPERS ============ 
 
     private int getNextId(String table, String column) throws SQLException {
         String sql = "SELECT COALESCE(MAX(" + column + "), 0) + 1 AS next_id FROM " + table;

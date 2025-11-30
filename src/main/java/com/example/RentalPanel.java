@@ -203,9 +203,9 @@ row.add(rs.getString("Start_date"));
 row.add(rs.getString("End_date"));
 row.add(rs.getString("City"));
 row.add(rs.getString("Zip_code"));
-row.add(rs.getDouble("Total_price"));
-row.add(rs.getInt("Equipment_id"));
-row.add(rs.getString("Customer_name"));
+row.add(rs.getDouble("Tot_price"));
+row.add(rs.getInt("Equip_id"));
+row.add(rs.getString("C_name"));
 row.add(rs.getInt("Employee_id"));
 
 model.addRow(row);

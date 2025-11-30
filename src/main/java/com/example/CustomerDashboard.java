@@ -6,15 +6,16 @@ import java.time.temporal.ChronoUnit;
 
 import javax.swing.JFrame;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
 public class CustomerDashboard extends JFrame {
 
-    // Theme colors (للبطاقات والازرار فوق الخلفية)
-    private static final Color CARD_GREY   = new Color(230, 233, 238, 230);
-    private static final Color HEADER_GREY = new Color(96, 111, 131, 230);
-    private static final Color BUTTON_DARK = new Color(74, 88, 105);
-    private static final Color TEXT_DARK   = new Color(40, 40, 40);
+    // ===== THEME COLORS =====
+    private static final Color CARD_GREY     = new Color(230, 233, 238, 230);
+    private static final Color BUTTER_YELLOW = new Color(245, 210, 90);  // header + card headers + borders
+    private static final Color BUTTON_DARK   = new Color(40, 40, 40);    // bottom buttons
+    private static final Color TEXT_DARK     = new Color(20, 20, 20);
 
     // Tables
     private JTable equipmentTable;
@@ -26,30 +27,24 @@ public class CustomerDashboard extends JFrame {
     private JTextField cityField;
     private JTextField zipField;
 
-    // اسم العميل (يجي من شاشة اللوق إن / الريجيستر)
     private String customerName;
-
-    // هل العميل جديد (مسجل للتو)؟
-    private boolean newlyRegistered;
-
-    // اتصال قاعدة البيانات
+    private boolean newlyRegistered;   // true only when just registered
     private Connection conn;
 
-    // لعرض معلومات العميل تحت Welcome
     private JLabel customerInfoLabel;
 
     // ===================== CONSTRUCTOR =====================
 
     public CustomerDashboard(String customerName, boolean newlyRegistered) {
-        this.customerName = customerName;        // نخزن الاسم اللي دخل
-        this.newlyRegistered = newlyRegistered;  // نخزن حالة الجديد أو لا
+        this.customerName = customerName;
+        this.newlyRegistered = newlyRegistered;
 
         setTitle("EJAR - Customer Portal");
         setSize(1200, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        String bgPath = "C:/Users/Joory/Downloads/WhatsApp Image 2025-11-28 at 02.20.17.jpeg";
+        String bgPath =  "/images/dashboard.jpg";
         BackgroundPanel bg = new BackgroundPanel(bgPath);
         setContentPane(bg);
         bg.setLayout(new BorderLayout());
@@ -61,13 +56,12 @@ public class CustomerDashboard extends JFrame {
         try {
             conn = DBConnection.getConnection();
             loadAvailableFromDB();
-            loadCustomerInfoFromDB();   // نعبّي معلومات الكستمر ونحطها في الليبل
+            loadCustomerInfoFromDB();
         } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "DB connection error");
         }
 
-        // ======= الرسالة تطلع فقط للكستمر الجديد =======
         if (this.newlyRegistered) {
             JOptionPane.showMessageDialog(
                     this,
@@ -83,30 +77,30 @@ public class CustomerDashboard extends JFrame {
 
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(HEADER_GREY);
-        header.setPreferredSize(new Dimension(0, 70));
+        header.setBackground(BUTTER_YELLOW);
+        header.setPreferredSize(new Dimension(0, 80));
         header.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         JLabel title = new JLabel("EJAR – Customer Portal", SwingConstants.LEFT);
-        title.setFont(new Font("Serif", Font.BOLD, 28));
-        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Serif", Font.BOLD, 30));
+        title.setForeground(Color.BLACK); // black text
 
-        // البانل اللي على اليمين فيه Welcome + معلومات العميل بخط صغير
         JPanel rightPanel = new JPanel();
         rightPanel.setOpaque(false);
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
 
         JLabel welcome = new JLabel("Welcome, " + customerName, SwingConstants.RIGHT);
-        welcome.setFont(new Font("Serif", Font.BOLD, 16));
-        welcome.setForeground(Color.WHITE);
+        welcome.setFont(new Font("Serif", Font.BOLD, 20));
+        welcome.setForeground(Color.BLACK); // black text
         welcome.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
         customerInfoLabel = new JLabel("", SwingConstants.RIGHT);
-        customerInfoLabel.setFont(new Font("Serif", Font.PLAIN, 12));
-        customerInfoLabel.setForeground(Color.WHITE);
+        customerInfoLabel.setFont(new Font("Serif", Font.PLAIN, 16));
+        customerInfoLabel.setForeground(Color.BLACK); // black text
         customerInfoLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
         rightPanel.add(welcome);
+        rightPanel.add(Box.createVerticalStrut(4));
         rightPanel.add(customerInfoLabel);
 
         header.add(title, BorderLayout.WEST);
@@ -118,9 +112,10 @@ public class CustomerDashboard extends JFrame {
     // ===================== MAIN AREA =====================
 
     private JPanel buildMainArea() {
+        // make boxes a bit longer again (smaller bottom padding)
         JPanel main = new JPanel(new GridLayout(1, 2, 15, 0));
         main.setOpaque(false);
-        main.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        main.setBorder(new EmptyBorder(15, 20, 90, 20)); // was 120 → now 90 so cards are taller
 
         main.add(buildAvailableEquipment());
         main.add(buildBookingPanel());
@@ -131,20 +126,19 @@ public class CustomerDashboard extends JFrame {
     private JPanel buildAvailableEquipment() {
         JPanel card = new JPanel(new BorderLayout(10, 10));
         card.setBackground(CARD_GREY);
-        card.setBorder(BorderFactory.createLineBorder(HEADER_GREY, 2));
+        card.setBorder(BorderFactory.createLineBorder(BUTTER_YELLOW, 2));
 
         JLabel title = new JLabel("Available Equipments", SwingConstants.CENTER);
         title.setFont(new Font("Serif", Font.BOLD, 20));
         title.setOpaque(true);
-        title.setBackground(HEADER_GREY);
-        title.setForeground(Color.WHITE);
+        title.setBackground(BUTTER_YELLOW);
+        title.setForeground(Color.BLACK); // black text
         card.add(title, BorderLayout.NORTH);
 
-        String[] cols = {"Equip ID", "Type", "Model", "Price", "Status"};
+        String[] cols = {"Equip ID", "Type", "Model", "Price"};
         equipmentTable = new JTable(new DefaultTableModel(cols, 0));
         equipmentTable.setRowHeight(22);
 
-        // لما يختار صف من الجدول → نعبي رقم المعدة في فورم الحجز
         equipmentTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && equipmentTable.getSelectedRow() != -1) {
                 equipIdField.setText(
@@ -161,18 +155,19 @@ public class CustomerDashboard extends JFrame {
     private JPanel buildBookingPanel() {
         JPanel card = new JPanel(new BorderLayout(10, 10));
         card.setBackground(CARD_GREY);
-        card.setBorder(BorderFactory.createLineBorder(HEADER_GREY, 2));
+        card.setBorder(BorderFactory.createLineBorder(BUTTER_YELLOW, 2));
 
         JLabel title = new JLabel("New Booking", SwingConstants.CENTER);
-        title.setFont(new Font("Serif", Font.BOLD, 20));
+        title.setFont(new Font("Serif", Font.BOLD, 22));
         title.setOpaque(true);
-        title.setBackground(HEADER_GREY);
-        title.setForeground(Color.WHITE);
+        title.setBackground(BUTTER_YELLOW);
+        title.setForeground(Color.BLACK); // black text
         card.add(title, BorderLayout.NORTH);
 
-        JPanel form = new JPanel(new GridLayout(5, 2, 10, 10));
+        // form area
+        JPanel form = new JPanel(new GridLayout(5, 2, 12, 12));
         form.setOpaque(false);
-        form.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        form.setBorder(BorderFactory.createEmptyBorder(20, 25, 15, 25));
 
         equipIdField = new JTextField();
         equipIdField.setEditable(false);
@@ -182,29 +177,66 @@ public class CustomerDashboard extends JFrame {
         cityField  = new JTextField();
         zipField   = new JTextField();
 
-        form.add(new JLabel("Equipment ID:"));
+        // Make text fields visually bigger
+        Dimension fieldSize = new Dimension(280, 34);
+        Font fieldFont = new Font("Serif", Font.PLAIN, 16);
+        equipIdField.setPreferredSize(fieldSize);
+        startField.setPreferredSize(fieldSize);
+        endField.setPreferredSize(fieldSize);
+        cityField.setPreferredSize(fieldSize);
+        zipField.setPreferredSize(fieldSize);
+
+        equipIdField.setFont(fieldFont);
+        startField.setFont(fieldFont);
+        endField.setFont(fieldFont);
+        cityField.setFont(fieldFont);
+        zipField.setFont(fieldFont);
+
+        // Bigger label fonts
+        Font labelFont = new Font("Serif", Font.BOLD, 16);
+        JLabel l1 = new JLabel("Equipment ID:");
+        JLabel l2 = new JLabel("Start Date:");
+        JLabel l3 = new JLabel("End Date:");
+        JLabel l4 = new JLabel("City:");
+        JLabel l5 = new JLabel("Zip Code:");
+
+        l1.setForeground(TEXT_DARK);
+        l2.setForeground(TEXT_DARK);
+        l3.setForeground(TEXT_DARK);
+        l4.setForeground(TEXT_DARK);
+        l5.setForeground(TEXT_DARK);
+
+        l1.setFont(labelFont);
+        l2.setFont(labelFont);
+        l3.setFont(labelFont);
+        l4.setFont(labelFont);
+        l5.setFont(labelFont);
+
+        form.add(l1);
         form.add(equipIdField);
 
-        form.add(new JLabel("Start Date:"));
+        form.add(l2);
         form.add(startField);
 
-        form.add(new JLabel("End Date:"));
+        form.add(l3);
         form.add(endField);
 
-        form.add(new JLabel("City:"));
+        form.add(l4);
         form.add(cityField);
 
-        form.add(new JLabel("Zip Code:"));
+        form.add(l5);
         form.add(zipField);
 
         card.add(form, BorderLayout.CENTER);
 
+        // Confirm Booking button (a bit smaller than before)
         JButton bookBtn = new JButton("Confirm Booking");
-        bookBtn.setBackground(BUTTON_DARK);
-        bookBtn.setForeground(Color.WHITE);
-        bookBtn.setFont(new Font("Serif", Font.BOLD, 16));
+        bookBtn.setBackground(BUTTER_YELLOW);          // butter yellow
+        bookBtn.setForeground(Color.BLACK);            // black text
+        bookBtn.setFont(new Font("Serif", Font.BOLD, 20));
         bookBtn.setFocusPainted(false);
-        bookBtn.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        bookBtn.setBorder(BorderFactory.createEmptyBorder(6, 26, 6, 26));
+        bookBtn.setPreferredSize(new Dimension(240, 42));
         bookBtn.addActionListener(e -> handleBooking());
 
         JPanel btnPanel = new JPanel();
@@ -218,8 +250,9 @@ public class CustomerDashboard extends JFrame {
     // ===================== BOTTOM BAR =====================
 
     private JPanel buildBottomBar() {
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 15));
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 5));
         bar.setOpaque(false);
+        bar.setBorder(new EmptyBorder(0, 0, 120, 0));
 
         JButton rentalsBtn = makeBtn("My Rentals");
         rentalsBtn.addActionListener(e -> openMyRentals());
@@ -233,23 +266,43 @@ public class CustomerDashboard extends JFrame {
         JButton updateInfoBtn = makeBtn("Update My Info");
         updateInfoBtn.addActionListener(e -> openUpdateInfoWindow());
 
-        // ما في زر Back
         bar.add(rentalsBtn);
         bar.add(cancelBtn);
         bar.add(paymentsBtn);
         bar.add(updateInfoBtn);
+
+       
+        if (!newlyRegistered) {
+            JButton logoutBtn = makeBtn("Logout");
+            logoutBtn.addActionListener(e -> logoutAndReturnToFirstPage());
+            bar.add(logoutBtn);
+        }
 
         return bar;
     }
 
     private JButton makeBtn(String text) {
         JButton btn = new JButton(text);
-        btn.setBackground(BUTTON_DARK);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Serif", Font.BOLD, 14));
+        btn.setBackground(BUTTON_DARK);         
+        btn.setForeground(Color.WHITE);       
+        btn.setFont(new Font("Serif", Font.BOLD, 18));
         btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        btn.setBorder(BorderFactory.createEmptyBorder(12, 25, 12, 25));
+        btn.setPreferredSize(new Dimension(210, 55));
         return btn;
+    }
+
+ 
+ // ===================== LOGOUT =====================
+
+    private void logoutAndReturnToFirstPage() {
+        // close this dashboard window
+        dispose();
+
+        // go back to your login screen
+        SwingUtilities.invokeLater(() -> {
+            new EjarLogin().setVisible(true);
+        });
     }
 
     // ===================== BOOKING LOGIC =====================
@@ -305,8 +358,8 @@ public class CustomerDashboard extends JFrame {
 
             String rentalSql =
                     "INSERT INTO RENTAL " +
-                    "(Rental_id, Start_date, End_date, City, Zip_code, Employee_id) " +
-                    "VALUES (?, ?, ?, ?, ?, ?)";
+                            "(Rental_id, Start_date, End_date, City, Zip_code, Employee_id) " +
+                            "VALUES (?, ?, ?, ?, ?, ?)";
 
             try (PreparedStatement ps = conn.prepareStatement(rentalSql)) {
                 ps.setInt(1, rentalId);
@@ -314,14 +367,13 @@ public class CustomerDashboard extends JFrame {
                 ps.setString(3, end);
                 ps.setString(4, city);
                 ps.setString(5, zip);
-                // Employee_id = NULL
-                ps.setNull(6, java.sql.Types.INTEGER);
+                ps.setNull(6, java.sql.Types.INTEGER); // Employee_id = NULL
                 ps.executeUpdate();
             }
 
             String paySql =
                     "INSERT INTO PAYMENT (Invoice, Pay_date, Total_price, P_rental) " +
-                    "VALUES (?, CURRENT_DATE(), ?, ?)";
+                            "VALUES (?, CURRENT_DATE(), ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(paySql)) {
                 ps.setInt(1, invoiceId);
                 ps.setDouble(2, totalPrice);
@@ -367,8 +419,8 @@ public class CustomerDashboard extends JFrame {
 
     private void openMyRentals() {
         String sql = "SELECT R.Rental_id, R.Start_date, R.End_date, R.City, R.Zip_code " +
-                     "FROM RENTAL R JOIN MAKES M ON R.Rental_id = M.Rent_id " +
-                     "WHERE M.C_name = ?";
+                "FROM RENTAL R JOIN MAKES M ON R.Rental_id = M.Rent_id " +
+                "WHERE M.C_name = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, customerName);
@@ -401,10 +453,10 @@ public class CustomerDashboard extends JFrame {
 
     private void openMyPayments() {
         String sql = "SELECT P.Invoice, P.Pay_date, P.Total_price " +
-                     "FROM PAYMENT P " +
-                     "JOIN RENTAL R ON P.P_rental = R.Rental_id " +
-                     "JOIN MAKES M ON R.Rental_id = M.Rent_id " +
-                     "WHERE M.C_name = ? ORDER BY P.Pay_date DESC";
+                "FROM PAYMENT P " +
+                "JOIN RENTAL R ON P.P_rental = R.Rental_id " +
+                "JOIN MAKES M ON R.Rental_id = M.Rent_id " +
+                "WHERE M.C_name = ? ORDER BY P.Pay_date DESC";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, customerName);
@@ -515,9 +567,9 @@ public class CustomerDashboard extends JFrame {
 
             try {
                 String sql = "UPDATE CUSTOMER SET " +
-                             "Cus_mobile = IF(? = '', Cus_mobile, ?), " +
-                             "Email = IF(? = '', Email, ?) " +
-                             "WHERE Cus_name = ?";
+                        "Cus_mobile = IF(? = '', Cus_mobile, ?), " +
+                        "Email = IF(? = '', Email, ?) " +
+                        "WHERE Cus_name = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, mobile);
                     ps.setString(2, mobile);
@@ -527,7 +579,6 @@ public class CustomerDashboard extends JFrame {
                     int rows = ps.executeUpdate();
                     if (rows > 0) {
                         JOptionPane.showMessageDialog(this, "Info updated successfully!");
-                        // نحدّث الليبل فوق بعد ما يعدّل بياناته
                         loadCustomerInfoFromDB();
                     } else {
                         JOptionPane.showMessageDialog(this, "Customer not found.");
@@ -540,36 +591,35 @@ public class CustomerDashboard extends JFrame {
         }
     }
 
-    // ===================== LOAD AVAILABLE EQUIP =====================
-
     private void loadAvailableFromDB() {
-        // نستخدم الــ view اللي اسمه equipment1
-        String sql = "SELECT id, type, model, price, stat " +
-                     "FROM equipment1 " +
-                     "WHERE stat = 'available'";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+    String sql =
+        "SELECT Equip_id, Type, Model, Price " +
+        "FROM EQUIPMENT1 " +
+        "WHERE Status = 'available'";
 
-            DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
-            m.setRowCount(0);
+    try (PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) {
-                m.addRow(new Object[]{
-                        rs.getInt("id"),        // Equip_id
-                        rs.getString("type"),   // Type
-                        rs.getString("model"),  // Model
-                        rs.getDouble("price"),  // Price
-                        rs.getString("stat")    // Status
-                });
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error loading available equipment");
+        DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
+        m.setRowCount(0);
+
+        while (rs.next()) {
+            m.addRow(new Object[]{
+                    rs.getInt("Equip_id"),
+                    rs.getString("Type"),
+                    rs.getString("Model"),
+                    rs.getDouble("Price")
+            });
         }
-    }
 
-    // ===================== LOAD CUSTOMER INFO =====================
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error loading available equipment");
+    }
+}
+
+    
 
     private void loadCustomerInfoFromDB() {
         if (conn == null) return;
@@ -599,4 +649,5 @@ public class CustomerDashboard extends JFrame {
             customerInfoLabel.setText("Error loading customer info.");
         }
     }
+    
 }

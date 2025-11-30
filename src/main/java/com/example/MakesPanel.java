@@ -77,9 +77,7 @@ public class MakesPanel extends JPanel {
         g.gridx=1; p.add(f,g);
     }
 
-    // =======================
-    //  ADD WITH VALIDATION
-    // =======================
+    
     private void addMakes(){
         String nameText  = txtName.getText().trim();
         String equipText = txtEquip.getText().trim();
@@ -101,25 +99,25 @@ public class MakesPanel extends JPanel {
 
         try (Connection c = DBConnection.getConnection()) {
 
-            // تحقق من وجود Customer
+        
             if (!exists(c, "SELECT 1 FROM CUSTOMER WHERE Cus_name = ?", nameText)) {
                 msg("C_name غير موجود في جدول CUSTOMER.");
                 return;
             }
 
-            // تحقق من وجود Equipment
+        
             if (!exists(c, "SELECT 1 FROM EQUIPMENT WHERE Equ_id = ?", equipId)) {
                 msg("Equ_id غير موجود في جدول EQUIPMENT.");
                 return;
             }
 
-            // تحقق من وجود Rental
+       
             if (!exists(c, "SELECT 1 FROM RENTAL WHERE Rental_id = ?", rentId)) {
                 msg("Rent_id غير موجود في جدول RENTAL.");
                 return;
             }
 
-            // الآن نضيف في MAKES
+         
             final String sql = "INSERT INTO MAKES (C_name, Equ_id, Rent_id) VALUES (?,?,?)";
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 ps.setString(1, nameText);
@@ -137,7 +135,6 @@ public class MakesPanel extends JPanel {
         }
     }
 
-    // helper: يتحقق هل فيه صف
     private boolean exists(Connection c, String sql, Object param) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             if (param instanceof String)

@@ -4,20 +4,20 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DBConnection {
-private static final String URL = "jdbc:mysql://localhost:3306/ejar?useSSL=false&serverTimezone=UTC";
-private static final String USER = "root" ;// غيّريه حسب MySQL عندك
-private static final String PASS = "EJAR123456789."; // إذا فيه باسورد حطيه هنا
 
-static {
-try {
-Class.forName("com.mysql.cj.jdbc.Driver");
-} catch (ClassNotFoundException e) {
-e.printStackTrace();
-}
-}
+    private static final String URL = "jdbc:mysql://localhost:3306/ejar?useSSL=false&serverTimezone=UTC";
+    private static final String USER = "root";
+    private static final String PASS = "EJAR123456789.";
 
-public static Connection getConnection() throws SQLException {
-return DriverManager.getConnection(URL, USER, PASS);
-}
-}
+    static {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASS);
+    }
+}
