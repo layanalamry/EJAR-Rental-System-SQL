@@ -58,7 +58,6 @@ add(new JScrollPane(table), BorderLayout.CENTER);
 
 addBtn.addActionListener(e -> addPayment());
 updateBtn.addActionListener(e -> updatePayment());
-deleteBtn.addActionListener(e -> deletePayment());
 clearBtn.addActionListener(e -> clearFields());
 refreshBtn.addActionListener(e -> loadData());
 
@@ -132,30 +131,7 @@ error(ex);
 }
 }
 
-private void deletePayment(){
-int row = table.getSelectedRow();
-if(row == -1){ msg("Select row to delete."); return; }
 
-int inv = Integer.parseInt(model.getValueAt(row,0).toString());
-
-if(JOptionPane.showConfirmDialog(this,
-"Delete invoice " + inv + " ?",
-"Confirm", JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION)
-return;
-
-try(Connection c = DBConnection.getConnection();
-PreparedStatement ps = c.prepareStatement("DELETE FROM PAYMENT WHERE Invoice=?")){
-
-ps.setInt(1,inv);
-ps.executeUpdate();
-msg("Payment deleted.");
-loadData();
-clearFields();
-
-} catch(Exception ex){
-error(ex);
-}
-}
 
 private void loadData(){
 model.setRowCount(0);

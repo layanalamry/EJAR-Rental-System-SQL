@@ -115,6 +115,8 @@ public class EmployeeDashboard extends JFrame {
 
         JButton addEquipBtn   = bigNavButton("Add New Equipment");
         JButton allEquipBtn   = bigNavButton("All Equipments");
+       JButton allPaymentsBtn = bigNavButton("All Payments");
+
         JButton abovePriceBtn = bigNavButton("Equipments above price");
         JButton salesBtn      = bigNavButton("Sales by type");
 
@@ -127,12 +129,15 @@ public class EmployeeDashboard extends JFrame {
 
         addEquipBtn.addActionListener(e -> addNewEquipment());
         allEquipBtn.addActionListener(e -> showAllEquipments());
+        allPaymentsBtn.addActionListener(e ->showAllPayments());
         abovePriceBtn.addActionListener(e -> viewEquipmentsAbovePrice());
         salesBtn.addActionListener(e -> viewTypeSales());
 
         rightColumn.add(addEquipBtn);
         rightColumn.add(Box.createVerticalStrut(10));
         rightColumn.add(allEquipBtn);
+        rightColumn.add(Box.createVerticalStrut(10));
+rightColumn.add(allPaymentsBtn);   
         rightColumn.add(Box.createVerticalStrut(10));
         rightColumn.add(abovePriceBtn);
         rightColumn.add(Box.createVerticalStrut(10));
@@ -208,7 +213,7 @@ public class EmployeeDashboard extends JFrame {
         String[] cols = {
                 "Rental ID", "Customer", "Email",
                 "Start", "End", "Equip ID",
-                "Total Price", "Emp ID"
+                "Total Price", "Emp ID", "Emp Name"
         };
         rentalsTable = new JTable(new DefaultTableModel(cols, 0));
         rentalsTable.setRowHeight(22);
@@ -455,44 +460,49 @@ public class EmployeeDashboard extends JFrame {
     }
 
     // كل الإيجارات مع اسم العميل والإيميل والتوتال برايس من PAYMENT
-    private void loadAllRentals() {
-        String sql =
-                "SELECT R.Rental_id, " +
-                "       C.Cus_name AS Customer, " +
-                "       C.Email    AS Email, " +
-                "       R.Start_date, " +
-                "       R.End_date, " +
-                "       M.Equ_id   AS Equip_id, " +
-                "       P.Total_price, " +
-                "       R.Employee_id " +
-                "FROM RENTAL R " +
-                "JOIN MAKES M    ON R.Rental_id = M.Rent_id " +
-                "JOIN CUSTOMER C ON M.C_name    = C.Cus_name " +
-                "LEFT JOIN PAYMENT P ON P.P_rental = R.Rental_id";
+   private void loadAllRentals() {
+    String sql =
+    "SELECT R.Rental_id, " +
+    "       C.Cus_name AS Customer, " +
+    "       C.Email AS Email, " +
+    "       R.Start_date, " +
+    "       R.End_date, " +
+    "       M.Equ_id AS Equip_id, " +
+    "       P.Total_price, " +
+    "       R.Employee_id, " +
+    "       E.Emp_name " +
+    "FROM RENTAL R " +
+    "JOIN MAKES M ON R.Rental_id = M.Rent_id " +
+    "JOIN CUSTOMER C ON M.C_name = C.Cus_name " +
+    "LEFT JOIN EMPLOYEE E ON E.Emp_id = R.Employee_id " +
+    "LEFT JOIN PAYMENT P ON P.P_rental = R.Rental_id";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
 
-            DefaultTableModel model = (DefaultTableModel) rentalsTable.getModel();
-            model.setRowCount(0);
+    try (PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) {
-                model.addRow(new Object[]{
-                        rs.getInt("Rental_id"),
-                        rs.getString("Customer"),
-                        rs.getString("Email"),
-                        rs.getString("Start_date"),
-                        rs.getString("End_date"),
-                        rs.getInt("Equip_id"),
-                        rs.getDouble("Total_price"),
-                        rs.getObject("Employee_id")
-                });
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error loading rentals");
+        DefaultTableModel model = (DefaultTableModel) rentalsTable.getModel();
+        model.setRowCount(0);
+
+        while (rs.next()) {
+            model.addRow(new Object[]{
+                rs.getInt("Rental_id"),
+                rs.getString("Customer"),
+                rs.getString("Email"),
+                rs.getString("Start_date"),
+                rs.getString("End_date"),
+                rs.getInt("Equip_id"),
+                rs.getDouble("Total_price"),
+                rs.getObject("Employee_id"),
+                rs.getString("Emp_name")
+            });
         }
+
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error loading rentals");
     }
+}
 
     // ============ EQUIPMENT OPERATIONS ============ 
 
@@ -960,6 +970,43 @@ public class EmployeeDashboard extends JFrame {
 
     // ============ OTHER VIEWS ============ 
 
+    private void showAllPayments() {
+    String sql =
+            "SELECT Invoice, Pay_date, Total_price, P_rental " +
+            "FROM PAYMENT " +
+            "ORDER BY Pay_date DESC";
+
+    try (PreparedStatement ps = conn.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
+
+        String[] cols = {"Invoice", "Pay Date", "Total Price", "Rental ID"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0);
+
+        while (rs.next()) {
+            model.addRow(new Object[]{
+                    rs.getInt("Invoice"),
+                    rs.getString("Pay_date"),
+                    rs.getDouble("Total_price"),
+                    rs.getInt("P_rental")
+            });
+        }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(22);
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setPreferredSize(new Dimension(600, 260));
+
+        JOptionPane.showMessageDialog(this, scroll,
+                "All Payments", JOptionPane.PLAIN_MESSAGE);
+
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error loading payments");
+    }
+}
+
+
     private void showAllEquipments() {
         String sql = "SELECT Equip_id, Type, Model, Price, Status FROM equipment1";
 
@@ -992,42 +1039,6 @@ public class EmployeeDashboard extends JFrame {
         }
     }
 
-    private void showPaymentsForMyRentals() {
-        String sql =
-                "SELECT P.Invoice, P.Pay_date, P.Total_price, P.P_rental " +
-                "FROM PAYMENT P " +
-                "JOIN RENTAL R ON P.P_rental = R.Rental_id " +
-                "WHERE R.Employee_id = ? " +
-                "ORDER BY P.Pay_date DESC";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, employeeId);
-            ResultSet rs = ps.executeQuery();
-
-            String[] cols = {"Invoice", "Pay Date", "Total Price", "Rental ID"};
-            DefaultTableModel model = new DefaultTableModel(cols, 0);
-
-            while (rs.next()) {
-                model.addRow(new Object[]{
-                        rs.getInt("Invoice"),
-                        rs.getString("Pay_date"),
-                        rs.getDouble("Total_price"),
-                        rs.getInt("P_rental")
-                });
-            }
-
-            JTable table = new JTable(model);
-            JScrollPane scroll = new JScrollPane(table);
-            scroll.setPreferredSize(new Dimension(600, 240));
-
-            JOptionPane.showMessageDialog(this, scroll,
-                    "Payments for my rentals", JOptionPane.PLAIN_MESSAGE);
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error loading payments");
-        }
-    }
 
     // ============ EMPLOYEE DELETE ============ 
 

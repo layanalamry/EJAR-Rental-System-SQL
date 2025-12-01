@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.sql.*;
 import java.time.LocalDate;
@@ -33,6 +32,10 @@ public class CustomerDashboard extends JFrame {
 
     private JLabel customerInfoLabel;
 
+    // NEW: keep references so we can add Logout later
+    private JPanel bottomBar;
+    private JButton logoutBtn;
+
     // ===================== CONSTRUCTOR =====================
 
     public CustomerDashboard(String customerName, boolean newlyRegistered) {
@@ -51,7 +54,10 @@ public class CustomerDashboard extends JFrame {
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildMainArea(), BorderLayout.CENTER);
-        add(buildBottomBar(), BorderLayout.SOUTH);
+
+        // keep reference to bottom bar
+        bottomBar = buildBottomBar();
+        add(bottomBar, BorderLayout.SOUTH);
 
         try {
             conn = DBConnection.getConnection();
@@ -271,10 +277,12 @@ public class CustomerDashboard extends JFrame {
         bar.add(paymentsBtn);
         bar.add(updateInfoBtn);
 
-       
+        // Create Logout button and keep reference
+        logoutBtn = makeBtn("Logout");
+        logoutBtn.addActionListener(e -> logoutAndReturnToFirstPage());
+
+        // For existing customers → show logout from the start
         if (!newlyRegistered) {
-            JButton logoutBtn = makeBtn("Logout");
-            logoutBtn.addActionListener(e -> logoutAndReturnToFirstPage());
             bar.add(logoutBtn);
         }
 
@@ -283,8 +291,8 @@ public class CustomerDashboard extends JFrame {
 
     private JButton makeBtn(String text) {
         JButton btn = new JButton(text);
-        btn.setBackground(BUTTON_DARK);         
-        btn.setForeground(Color.WHITE);       
+        btn.setBackground(BUTTON_DARK);
+        btn.setForeground(Color.WHITE);
         btn.setFont(new Font("Serif", Font.BOLD, 18));
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createEmptyBorder(12, 25, 12, 25));
@@ -292,8 +300,7 @@ public class CustomerDashboard extends JFrame {
         return btn;
     }
 
- 
- // ===================== LOGOUT =====================
+    // ===================== LOGOUT =====================
 
     private void logoutAndReturnToFirstPage() {
         // close this dashboard window
@@ -396,6 +403,17 @@ public class CustomerDashboard extends JFrame {
                     "Booking created successfully!\nTotal price: " + totalPrice + " SAR");
 
             loadAvailableFromDB();
+
+            // After first successful booking, allow logout for newly registered customers
+            if (newlyRegistered) {
+                newlyRegistered = false;  // condition satisfied
+
+                if (bottomBar != null && logoutBtn != null) {
+                    bottomBar.add(logoutBtn);   // add Logout button to bar
+                    bottomBar.revalidate();     // refresh layout
+                    bottomBar.repaint();
+                }
+            }
 
         } catch (Exception ex) {
             try { conn.rollback(); } catch (Exception ignore) {}
@@ -593,33 +611,31 @@ public class CustomerDashboard extends JFrame {
 
     private void loadAvailableFromDB() {
 
-    String sql =
-        "SELECT Equip_id, Type, Model, Price " +
-        "FROM EQUIPMENT1 " +
-        "WHERE Status = 'available'";
+        String sql =
+            "SELECT Equip_id, Type, Model, Price " +
+            "FROM EQUIPMENT1 " +
+            "WHERE Status = 'available'";
 
-    try (PreparedStatement ps = conn.prepareStatement(sql);
-         ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
-        DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
-        m.setRowCount(0);
+            DefaultTableModel m = (DefaultTableModel) equipmentTable.getModel();
+            m.setRowCount(0);
 
-        while (rs.next()) {
-            m.addRow(new Object[]{
-                    rs.getInt("Equip_id"),
-                    rs.getString("Type"),
-                    rs.getString("Model"),
-                    rs.getDouble("Price")
-            });
+            while (rs.next()) {
+                m.addRow(new Object[]{
+                        rs.getInt("Equip_id"),
+                        rs.getString("Type"),
+                        rs.getString("Model"),
+                        rs.getDouble("Price")
+                });
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading available equipment");
         }
-
-    } catch (SQLException ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Error loading available equipment");
     }
-}
-
-    
 
     private void loadCustomerInfoFromDB() {
         if (conn == null) return;
@@ -649,5 +665,5 @@ public class CustomerDashboard extends JFrame {
             customerInfoLabel.setText("Error loading customer info.");
         }
     }
-    
+
 }

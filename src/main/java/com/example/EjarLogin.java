@@ -350,41 +350,60 @@ public class EjarLogin extends JFrame {
 
     private void registerEmployee() {
 
-        JTextField idField = new JTextField();
-        JTextField nameField = new JTextField();
+    // Only ask for the employee name
+    JTextField nameField = new JTextField();
 
-        JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
-        panel.add(new JLabel("Employee ID:"));
-        panel.add(idField);
-        panel.add(new JLabel("Name:"));
-        panel.add(nameField);
+    JPanel panel = new JPanel(new GridLayout(1, 2, 5, 5));
+    panel.add(new JLabel("Name:"));
+    panel.add(nameField);
 
-        int result = JOptionPane.showConfirmDialog(this, panel,
-                "Employee registration", JOptionPane.OK_CANCEL_OPTION);
+    int result = JOptionPane.showConfirmDialog(this, panel,
+            "Employee registration", JOptionPane.OK_CANCEL_OPTION);
 
-        if (result != JOptionPane.OK_OPTION) return;
+    if (result != JOptionPane.OK_OPTION) return;
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO EMPLOYEE (Emp_id, Emp_name) VALUES (?, ?)")) {
-
-            ps.setInt(1, Integer.parseInt(idField.getText().trim()));
-            ps.setString(2, nameField.getText().trim());
-            ps.executeUpdate();
-
-            JOptionPane.showMessageDialog(this,
-                    "Employee registered successfully!",
-                    "Registered",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Error registering employee",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    String empName = nameField.getText().trim();
+    if (empName.isEmpty()) {
+        JOptionPane.showMessageDialog(this,
+                "Employee name is required.",
+                "Error",
+                JOptionPane.WARNING_MESSAGE);
+        return;
     }
 
+    try (Connection conn = DBConnection.getConnection()) {
+
+        // 1) Generate next Emp_id from the database
+        int nextId = 1;
+        String idSql = "SELECT COALESCE(MAX(Emp_id), 0) + 1 AS next_id FROM EMPLOYEE";
+        try (PreparedStatement psId = conn.prepareStatement(idSql);
+             ResultSet rs = psId.executeQuery()) {
+            if (rs.next()) {
+                nextId = rs.getInt("next_id");
+            }
+        }
+
+        // 2) Insert new employee with generated ID
+        String insertSql = "INSERT INTO EMPLOYEE (Emp_id, Emp_name) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            ps.setInt(1, nextId);
+            ps.setString(2, empName);
+            ps.executeUpdate();
+        }
+
+        JOptionPane.showMessageDialog(this,
+                "Employee registered successfully!\nGenerated ID: " + nextId,
+                "Registered",
+                JOptionPane.INFORMATION_MESSAGE);
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this,
+                "Error registering employee",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+    }
+}
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             new EjarLogin().setVisible(true);

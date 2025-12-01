@@ -55,7 +55,6 @@ public class MakesPanel extends JPanel {
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         addBtn.addActionListener(e -> addMakes());
-        deleteBtn.addActionListener(e -> deleteMakes());
         clearBtn.addActionListener(e -> clearFields());
         refreshBtn.addActionListener(e -> loadData());
 
@@ -84,8 +83,8 @@ public class MakesPanel extends JPanel {
         String rentText  = txtRent.getText().trim();
 
         if (nameText.isEmpty() || equipText.isEmpty() || rentText.isEmpty()) {
-            msg("كل الحقول مطلوبة (C_name, Equ_id, Rent_id).");
-            return;
+        msg("All feilds are reqired") ;
+           return;
         }
 
         int equipId, rentId;
@@ -93,27 +92,27 @@ public class MakesPanel extends JPanel {
             equipId = Integer.parseInt(equipText);
             rentId  = Integer.parseInt(rentText);
         } catch (NumberFormatException ex) {
-            msg("Equ_id و Rent_id لازم أرقام.");
-            return;
+        msg("Rent ID and Equipment ID must be numbers");           
+        return;
         }
 
         try (Connection c = DBConnection.getConnection()) {
 
         
             if (!exists(c, "SELECT 1 FROM CUSTOMER WHERE Cus_name = ?", nameText)) {
-                msg("C_name غير موجود في جدول CUSTOMER.");
+                msg("C_name not exist in CUSTOMER.");
                 return;
             }
 
         
             if (!exists(c, "SELECT 1 FROM EQUIPMENT WHERE Equ_id = ?", equipId)) {
-                msg("Equ_id غير موجود في جدول EQUIPMENT.");
+                msg("Equ_id not exist in EQUIPMENT.");
                 return;
             }
 
        
             if (!exists(c, "SELECT 1 FROM RENTAL WHERE Rental_id = ?", rentId)) {
-                msg("Rent_id غير موجود في جدول RENTAL.");
+                msg("Rent_id not exist in RENTAL.");
                 return;
             }
 
@@ -147,40 +146,7 @@ public class MakesPanel extends JPanel {
             }
         }
     }
-
-    private void deleteMakes(){
-        int row = table.getSelectedRow();
-        if(row == -1){
-            msg("Select row to delete.");
-            return;
-        }
-
-        String name = model.getValueAt(row,0).toString();
-        int equip = Integer.parseInt(model.getValueAt(row,1).toString());
-        int rent  = Integer.parseInt(model.getValueAt(row,2).toString());
-
-        if(JOptionPane.showConfirmDialog(this,
-                "Delete relation ?", "Confirm",
-                JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION)
-            return;
-
-        final String sql = "DELETE FROM MAKES WHERE C_name=? AND Equ_id=? AND Rent_id=?";
-
-        try(Connection c = DBConnection.getConnection();
-            PreparedStatement ps = c.prepareStatement(sql)){
-
-            ps.setString(1,name);
-            ps.setInt(2,equip);
-            ps.setInt(3,rent);
-
-            ps.executeUpdate();
-            msg("Deleted.");
-            loadData();
-            clearFields();
-
-        } catch(Exception ex){ error(ex); }
-    }
-
+    
     private void loadData(){
 
         model.setRowCount(0);

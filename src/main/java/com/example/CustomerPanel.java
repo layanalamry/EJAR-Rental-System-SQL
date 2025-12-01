@@ -50,13 +50,11 @@ public class CustomerPanel extends JPanel {
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton addBtn = new JButton("Add");
         JButton updateBtn = new JButton("Update");
-        JButton deleteBtn = new JButton("Delete");
         JButton clearBtn = new JButton("Clear");
         JButton refreshBtn = new JButton("Refresh");
 
         btns.add(addBtn);
         btns.add(updateBtn);
-        btns.add(deleteBtn);
         btns.add(clearBtn);
         btns.add(refreshBtn);
 
@@ -80,7 +78,6 @@ public class CustomerPanel extends JPanel {
 
         addBtn.addActionListener(e -> addCustomer());
         updateBtn.addActionListener(e -> updateCustomer());
-        deleteBtn.addActionListener(e -> deleteCustomer());
         clearBtn.addActionListener(e -> clearFields());
         refreshBtn.addActionListener(e -> loadData());
 
@@ -154,37 +151,6 @@ public class CustomerPanel extends JPanel {
 
             ps.executeUpdate();
             msg("Customer updated successfully.");
-            loadData();
-            clearFields();
-
-        } catch (SQLException ex) {
-            error(ex);
-        }
-    }
-
-    private void deleteCustomer() {
-        int selected = table.getSelectedRow();
-        if (selected == -1) {
-            msg("Select a row to delete.");
-            return;
-        }
-
-        String name = model.getValueAt(selected, 0).toString();
-
-        if (JOptionPane.showConfirmDialog(this,
-                "Delete customer: " + name + " ?",
-                "Confirm delete",
-                JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
-            return;
-        }
-
-        final String sql = "DELETE FROM CUSTOMER WHERE Cus_name=?";
-
-        try (Connection con = DBConnection.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, name);
-            ps.executeUpdate();
-            msg("Customer deleted.");
             loadData();
             clearFields();
 

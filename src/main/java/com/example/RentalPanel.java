@@ -68,8 +68,6 @@ table = new JTable(model);
 add(new JScrollPane(table), BorderLayout.CENTER);
 
 addBtn.addActionListener(e -> addRental());
-updateBtn.addActionListener(e -> updateRental());
-deleteBtn.addActionListener(e -> deleteRental());
 clearBtn.addActionListener(e -> clearFields());
 refreshBtn.addActionListener(e -> loadData());
 
@@ -128,60 +126,6 @@ loadData();
 clearFields();
 
 }
-
-} catch(Exception ex){
-error(ex);
-}
-}
-
-private void updateRental(){
-try {
-String sql =
-"UPDATE RENTAL SET Start_date=?,End_date=?,City=?,Zip_code=?,Tot_price=?,Equip_id=?,C_name=?,Employee_id=? WHERE Rental_id=?";
-
-try(Connection c = DBConnection.getConnection();
-PreparedStatement ps = c.prepareStatement(sql)){
-
-ps.setString(1, txtStart.getText().trim());
-ps.setString(2, txtEnd.getText().trim());
-ps.setString(3, txtCity.getText().trim());
-ps.setString(4, txtZip.getText().trim());
-ps.setDouble(5, Double.parseDouble(txtTotal.getText().trim()));
-ps.setInt(6, Integer.parseInt(txtEquipId.getText().trim()));
-ps.setString(7, txtCustomer.getText().trim());
-ps.setInt(8, Integer.parseInt(txtEmpId.getText().trim()));
-ps.setInt(9, Integer.parseInt(txtRentalId.getText().trim()));
-
-ps.executeUpdate();
-msg("Rental updated.");
-loadData();
-clearFields();
-}
-
-} catch(Exception ex){
-error(ex);
-}
-}
-
-private void deleteRental(){
-int row = table.getSelectedRow();
-if(row == -1){ msg("Select row to delete."); return; }
-
-int id = Integer.parseInt(model.getValueAt(row,0).toString());
-
-if(JOptionPane.showConfirmDialog(this,
-"Delete Rental " + id + " ?",
-"Confirm", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
-return;
-
-try(Connection c = DBConnection.getConnection();
-PreparedStatement ps = c.prepareStatement("DELETE FROM RENTAL WHERE Rental_id=?")){
-
-ps.setInt(1,id);
-ps.executeUpdate();
-msg("Rental deleted.");
-loadData();
-clearFields();
 
 } catch(Exception ex){
 error(ex);
