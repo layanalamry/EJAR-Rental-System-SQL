@@ -507,65 +507,107 @@ rightColumn.add(allPaymentsBtn);
     // ============ EQUIPMENT OPERATIONS ============ 
 
     // إضافة معدّة جديدة
-    private void addNewEquipment() {
-        JTextField typeField  = new JTextField();
-        JTextField modelField = new JTextField();
-        JTextField priceField = new JTextField();
+    // إضافة معدّة جديدة واعتبار هذا الموظف هو المانِجر لها
+private void addNewEquipment() {
 
-        JPanel panel = new JPanel(new GridLayout(3, 2, 5, 5));
-        panel.add(new JLabel("Type:"));
-        panel.add(typeField);
-        panel.add(new JLabel("Model:"));
-        panel.add(modelField);
-        panel.add(new JLabel("Price (per day):"));
-        panel.add(priceField);
-
-        int result = JOptionPane.showConfirmDialog(
-                this, panel, "Add New Equipment",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) return;
-
-        String type  = typeField.getText().trim();
-        String model = modelField.getText().trim();
-        String priceStr = priceField.getText().trim();
-
-        if (type.isEmpty() || model.isEmpty() || priceStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "All fields are required.");
-            return;
-        }
-
-        double price;
-        try {
-            price = Double.parseDouble(priceStr);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid price.");
-            return;
-        }
-
-        try {
-            int newId = getNextId("EQUIPMENT", "Equip_id");
-
-            String sql = "INSERT INTO EQUIPMENT (Equip_id, Type, Model, Price) " +
-                         "VALUES (?, ?, ?, ?)";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setInt(1, newId);
-                ps.setString(2, type);
-                ps.setString(3, model);
-                ps.setDouble(4, price);
-                ps.executeUpdate();
+    // 0) أولاً: تأكد أن هذا الموظف لا يدير معدّة أخرى الآن
+    String checkMine = "SELECT Eq_id FROM EMPLOYEE WHERE Emp_id = ?";
+    try (PreparedStatement checkPs = conn.prepareStatement(checkMine)) {
+        checkPs.setInt(1, employeeId);
+        try (ResultSet rs = checkPs.executeQuery()) {
+            if (rs.next()) {
+                Integer myEq = (Integer) rs.getObject("Eq_id");
+                if (myEq != null) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "You already manage equipment #" + myEq +
+                            ".\nStop managing it first before adding a new one you manage.",
+                            "Not allowed",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
             }
-
-            JOptionPane.showMessageDialog(this, "Equipment added with ID " + newId);
-            loadManagedEquipment();   // will show if this employee chooses it later
-
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error adding equipment");
         }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this,
+                "Error checking your managed equipment");
+        return;
     }
 
+    // 1) جمع البيانات من المستخدم
+    JTextField typeField  = new JTextField();
+    JTextField modelField = new JTextField();
+    JTextField priceField = new JTextField();
+
+    JPanel panel = new JPanel(new GridLayout(3, 2, 5, 5));
+    panel.add(new JLabel("Type:"));
+    panel.add(typeField);
+    panel.add(new JLabel("Model:"));
+    panel.add(modelField);
+    panel.add(new JLabel("Price (per day):"));
+    panel.add(priceField);
+
+    int result = JOptionPane.showConfirmDialog(
+            this, panel, "Add New Equipment",
+            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
+    );
+
+    if (result != JOptionPane.OK_OPTION) return;
+
+    String type  = typeField.getText().trim();
+    String model = modelField.getText().trim();
+    String priceStr = priceField.getText().trim();
+
+    if (type.isEmpty() || model.isEmpty() || priceStr.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "All fields are required.");
+        return;
+    }
+
+    double price;
+    try {
+        price = Double.parseDouble(priceStr);
+    } catch (NumberFormatException ex) {
+        JOptionPane.showMessageDialog(this, "Invalid price.");
+        return;
+    }
+
+    try {
+        // 2) نحسب الـ ID الجديد
+        int newId = getNextId("EQUIPMENT", "Equip_id");
+
+        // 3) نضيف المعدّة في جدول EQUIPMENT
+        String insertSql = "INSERT INTO EQUIPMENT (Equip_id, Type, Model, Price) " +
+                           "VALUES (?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            ps.setInt(1, newId);
+            ps.setString(2, type);
+            ps.setString(3, model);
+            ps.setDouble(4, price);
+            ps.executeUpdate();
+        }
+
+        // 4) نربط هذه المعدّة بالموظف الحالي كـ Manager (EMPLOYEE.Eq_id)
+        String updateEmpSql = "UPDATE EMPLOYEE SET Eq_id = ? WHERE Emp_id = ?";
+        try (PreparedStatement ps2 = conn.prepareStatement(updateEmpSql)) {
+            ps2.setInt(1, newId);
+            ps2.setInt(2, employeeId);
+            ps2.executeUpdate();
+        }
+
+        JOptionPane.showMessageDialog(this,
+                "Equipment added with ID " + newId +
+                " and assigned to you as manager.");
+
+        // تحدّث جدول "Equipment I Currently Manage"
+        loadManagedEquipment();
+
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error adding equipment");
+    }
+}
     // اختر معدّة لإدارتها – فقط إذا الموظف لا يدير أي معدّة الآن
     private void chooseEquipmentToManage() {
 
@@ -995,7 +1037,7 @@ rightColumn.add(allPaymentsBtn);
         table.setRowHeight(22);
 
         JScrollPane scroll = new JScrollPane(table);
-        scroll.setPreferredSize(new Dimension(600, 260));
+        scroll.setPreferredSize(new Dimension(220, 180));
 
         JOptionPane.showMessageDialog(this, scroll,
                 "All Payments", JOptionPane.PLAIN_MESSAGE);
