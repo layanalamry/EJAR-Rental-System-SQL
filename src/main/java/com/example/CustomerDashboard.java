@@ -201,8 +201,8 @@ public class CustomerDashboard extends JFrame {
         // Bigger label fonts
         Font labelFont = new Font("Serif", Font.BOLD, 16);
         JLabel l1 = new JLabel("Equipment ID:");
-        JLabel l2 = new JLabel("Start Date:");
-        JLabel l3 = new JLabel("End Date:");
+        JLabel l2 = new JLabel("Start Date: YYYY-MM-DD");
+        JLabel l3 = new JLabel("End Date: YYYY-MM-DD");
         JLabel l4 = new JLabel("City:");
         JLabel l5 = new JLabel("Zip Code:");
 
